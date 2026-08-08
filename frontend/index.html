@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cv-tailor</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <h1>cv-tailor</h1>
+    <div class="profile-switcher">
+      <select id="profile-select"></select>
+      <button id="btn-new-profile" type="button" title="Nouveau profil">+ Profil</button>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="profile">Profil</button>
+      <button class="tab-btn" data-tab="experiences">Expériences</button>
+      <button class="tab-btn" data-tab="educations">Formations</button>
+      <button class="tab-btn" data-tab="skills">Compétences</button>
+      <button class="tab-btn" data-tab="projects">Projets</button>
+      <button class="tab-btn" data-tab="languages">Langues</button>
+      <button class="tab-btn generate" data-tab="generate">✦ Générer un CV</button>
+    </nav>
+  </aside>
+
+  <main class="content">
+
+    <section id="tab-profile" class="tab-panel active">
+      <h2>Profil</h2>
+      <form id="form-profile" class="form-grid">
+        <label>Nom complet <input name="full_name"></label>
+        <label>Email <input name="email"></label>
+        <label>Téléphone <input name="phone"></label>
+        <label>Localisation <input name="location"></label>
+        <label>LinkedIn <input name="linkedin"></label>
+        <label>GitHub <input name="github"></label>
+        <label>Site web <input name="website"></label>
+        <label class="full">Résumé / accroche <textarea name="summary" rows="3"></textarea></label>
+        <button type="submit">Enregistrer</button>
+      </form>
+      <p class="save-status" id="status-profile"></p>
+    </section>
+
+    <section id="tab-experiences" class="tab-panel">
+      <h2>Expériences</h2>
+      <div id="list-experiences" class="item-list"></div>
+      <h3>Ajouter une expérience</h3>
+      <form id="form-experiences" class="form-grid">
+        <label>Entreprise <input name="company" required></label>
+        <label>Poste <input name="role" required></label>
+        <label>Localisation <input name="location"></label>
+        <label>Début <input name="start_date" type="date"></label>
+        <label>Fin (vide = en cours) <input name="end_date" type="date"></label>
+        <label class="full">Description (une puce par ligne) <textarea name="description" rows="4"></textarea></label>
+        <label class="full">Mots-clés (séparés par des virgules) <input name="tags" placeholder="python, react, gestion de projet"></label>
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section id="tab-educations" class="tab-panel">
+      <h2>Formations</h2>
+      <div id="list-educations" class="item-list"></div>
+      <h3>Ajouter une formation</h3>
+      <form id="form-educations" class="form-grid">
+        <label>École <input name="school" required></label>
+        <label>Diplôme <input name="degree"></label>
+        <label>Domaine <input name="field"></label>
+        <label>Début <input name="start_date" type="date"></label>
+        <label>Fin <input name="end_date" type="date"></label>
+        <label class="full">Description <textarea name="description" rows="2"></textarea></label>
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section id="tab-skills" class="tab-panel">
+      <h2>Compétences</h2>
+      <div id="list-skills" class="item-list"></div>
+      <h3>Ajouter une compétence</h3>
+      <form id="form-skills" class="form-grid">
+        <label>Nom <input name="name" required placeholder="Python"></label>
+        <label>Catégorie <input name="category" placeholder="Langages"></label>
+        <label>Niveau <input name="level" placeholder="Avancé"></label>
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section id="tab-projects" class="tab-panel">
+      <h2>Projets</h2>
+      <div id="list-projects" class="item-list"></div>
+      <h3>Ajouter un projet</h3>
+      <form id="form-projects" class="form-grid">
+        <label>Nom <input name="name" required></label>
+        <label>Lien <input name="link" placeholder="github.com/..."></label>
+        <label class="full">Description <textarea name="description" rows="3"></textarea></label>
+        <label class="full">Mots-clés <input name="tags" placeholder="python, api, ia"></label>
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section id="tab-languages" class="tab-panel">
+      <h2>Langues</h2>
+      <div id="list-languages" class="item-list"></div>
+      <h3>Ajouter une langue</h3>
+      <form id="form-languages" class="form-grid">
+        <label>Langue <input name="name" required placeholder="Anglais"></label>
+        <label>Niveau <input name="level" placeholder="Courant / B2 / Natif"></label>
+        <button type="submit">Ajouter</button>
+      </form>
+    </section>
+
+    <section id="tab-generate" class="tab-panel">
+      <h2>Générer un CV</h2>
+      <p class="hint">Colle une offre d'emploi ci-dessous pour adapter automatiquement l'ordre des compétences,
+      des projets mis en avant et des puces d'expérience. Laisse vide pour un CV générique.</p>
+      <textarea id="offer-text" rows="10" placeholder="Colle le texte de l'offre ici..."></textarea>
+      <div class="actions">
+        <button id="btn-preview">Aperçu</button>
+        <button id="btn-download-docx">Télécharger en .docx</button>
+      </div>
+      <iframe id="cv-preview" title="Aperçu du CV"></iframe>
+    </section>
+
+  </main>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
