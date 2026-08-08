@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Lettre de motivation - {{ profile.full_name }}</title>
+<style>
+  @page { size: A4; margin: 22mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; font-size: 13px;
+    line-height: 1.6; max-width: 700px; margin: 0 auto;
+  }
+  .sender { margin-bottom: 26px; }
+  .sender strong { display: block; font-size: 15px; color: #111827; }
+  .contact { color: #4b5563; font-size: 12px; margin-top: 2px; }
+  .date { text-align: right; margin-bottom: 26px; color: #374151; }
+  .object { font-weight: 600; margin-bottom: 18px; color: #111827; }
+  p { margin: 0 0 14px; text-align: justify; }
+  .signature { margin-top: 30px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="sender">
+  <strong>{{ profile.full_name }}</strong>
+  <div class="contact">
+    {% if profile.email %}{{ profile.email }}{% endif %}
+    {% if profile.phone %} · {{ profile.phone }}{% endif %}
+    {% if profile.location %} · {{ profile.location }}{% endif %}
+  </div>
+</div>
+
+<div class="date">Le {{ today }}</div>
+
+<div class="object">
+  Objet : Candidature{% if job_title %} au poste de {{ job_title }}{% endif %}
+</div>
+
+<p>Madame, Monsieur,</p>
+
+<p>
+  {% if summary %}{{ summary }}{% else %}Je vous adresse ma candidature avec grand intérêt.{% endif %}
+  {% if job_title %} C'est donc naturellement que je souhaite vous soumettre ma candidature pour le poste de {{ job_title }}.{% endif %}
+</p>
+
+{% if top_experiences %}
+<p>
+  Mon parcours m'a permis de développer une expérience concrète, notamment
+  {% for e in top_experiences %}en tant que {{ e.role }} chez {{ e.company }}{% if not loop.last %}, ainsi que {% endif %}{% endfor %},
+  où j'ai pu mettre en pratique des compétences directement utiles au poste que vous proposez.
+</p>
+{% endif %}
+
+{% if top_skills %}
+<p>
+  Je maîtrise notamment {{ top_skills|join(', ') }}, des compétences que je serais
+  heureux(se) de mettre au service de votre équipe.
+</p>
+{% endif %}
+
+<p>
+  Je me tiens à votre disposition pour un entretien au cours duquel je pourrais vous exposer
+  plus en détail ma motivation et mon parcours. Je vous remercie par avance pour l'attention
+  portée à ma candidature.
+</p>
+
+<p>Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.</p>
+
+<div class="signature">{{ profile.full_name }}</div>
+
+</body>
+</html>

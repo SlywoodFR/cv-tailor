@@ -56,6 +56,7 @@ function refreshAll() {
   Object.keys(collections).forEach(exitEditMode);
   loadProfile();
   Object.keys(collections).forEach(loadCollection);
+  loadCvHistory();
 }
 
 document.getElementById("btn-delete-profile").addEventListener("click", async () => {
@@ -320,49 +321,137 @@ Object.keys(collections).forEach((name) => {
 });
 
 // ---------- Génération de CV ----------
+function currentTemplate() {
+  return document.getElementById("cv-template").value;
+}
+
+async function downloadBlob(url, payload, filename) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    alert(err.detail || "Échec de la génération du fichier.");
+    return;
+  }
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+}
+
 document.getElementById("btn-preview").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
   const res = await fetch(`${API}/api/generate-cv/html`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ offer_text, profile_id: currentProfileId }),
+    body: JSON.stringify({ offer_text, profile_id: currentProfileId, template: currentTemplate() }),
   });
   const html = await res.text();
-  const iframe = document.getElementById("cv-preview");
-  iframe.srcdoc = html;
+  document.getElementById("cv-preview").srcdoc = html;
 });
 
 document.getElementById("btn-download-pdf").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
-  const res = await fetch(`${API}/api/generate-cv/pdf`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ offer_text, profile_id: currentProfileId }),
-  });
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "CV.pdf";
-  a.click();
-  URL.revokeObjectURL(url);
+  await downloadBlob(
+    `${API}/api/generate-cv/pdf`,
+    { offer_text, profile_id: currentProfileId, template: currentTemplate() },
+    "CV.pdf"
+  );
+  loadCvHistory();
 });
 
 document.getElementById("btn-download-docx").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
-  const res = await fetch(`${API}/api/generate-cv/docx`, {
+  await downloadBlob(
+    `${API}/api/generate-cv/docx`,
+    { offer_text, profile_id: currentProfileId },
+    "CV.docx"
+  );
+  loadCvHistory();
+});
+
+// ---------- Lettre de motivation ----------
+document.getElementById("btn-letter-preview").addEventListener("click", async () => {
+  const offer_text = document.getElementById("offer-text").value;
+  const res = await fetch(`${API}/api/generate-letter/html`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ offer_text, profile_id: currentProfileId }),
   });
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "CV.docx";
-  a.click();
-  URL.revokeObjectURL(url);
+  const html = await res.text();
+  document.getElementById("letter-preview").srcdoc = html;
 });
+
+document.getElementById("btn-letter-download-pdf").addEventListener("click", async () => {
+  const offer_text = document.getElementById("offer-text").value;
+  await downloadBlob(
+    `${API}/api/generate-letter/pdf`,
+    { offer_text, profile_id: currentProfileId },
+    "Lettre.pdf"
+  );
+});
+
+document.getElementById("btn-letter-download-docx").addEventListener("click", async () => {
+  const offer_text = document.getElementById("offer-text").value;
+  await downloadBlob(
+    `${API}/api/generate-letter/docx`,
+    { offer_text, profile_id: currentProfileId },
+    "Lettre.docx"
+  );
+});
+
+// ---------- Historique des offres ----------
+async function loadCvHistory() {
+  const res = await fetch(`${API}/api/cv-history/?profile_id=${currentProfileId}`);
+  const items = await res.json();
+  const list = document.getElementById("cv-history-list");
+  list.innerHTML = "";
+  if (items.length === 0) {
+    list.innerHTML = `<p class="hint">Aucun CV téléchargé pour une offre pour l'instant.</p>`;
+    return;
+  }
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "item-card";
+    const date = new Date(item.created_at).toLocaleDateString("fr-FR", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+    card.innerHTML = `<div class="item-main"><strong>${item.offer_title || "(sans titre)"}</strong><div class="item-sub">${date}</div></div>`;
+
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    const reuseBtn = document.createElement("button");
+    reuseBtn.type = "button";
+    reuseBtn.className = "btn-edit";
+    reuseBtn.textContent = "Réutiliser";
+    reuseBtn.addEventListener("click", () => {
+      document.getElementById("offer-text").value = item.offer_text;
+      if (item.template) document.getElementById("cv-template").value = item.template;
+      document.getElementById("offer-text").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    actions.appendChild(reuseBtn);
+
+    const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn-delete";
+    delBtn.textContent = "Supprimer";
+    delBtn.addEventListener("click", async () => {
+      await fetch(`${API}/api/cv-history/${item.id}`, { method: "DELETE" });
+      loadCvHistory();
+    });
+    actions.appendChild(delBtn);
+
+    card.appendChild(actions);
+    list.appendChild(card);
+  });
+}
 
 // ---------- Init ----------
 loadProfiles().then(refreshAll);

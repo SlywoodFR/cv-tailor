@@ -3,7 +3,7 @@
 Un seul profil (l'utilisateur) avec des listes d'expériences, formations,
 compétences, projets et langues rattachées.
 """
-from datetime import date
+from datetime import date, datetime
 from typing import Optional, List
 
 from sqlmodel import SQLModel, Field, Relationship
@@ -25,6 +25,7 @@ class Profile(SQLModel, table=True):
     skills: List["Skill"] = Relationship(back_populates="profile")
     projects: List["Project"] = Relationship(back_populates="profile")
     languages: List["Language"] = Relationship(back_populates="profile")
+    cv_history: List["GeneratedCV"] = Relationship(back_populates="profile")
 
 
 class Experience(SQLModel, table=True):
@@ -84,3 +85,18 @@ class Language(SQLModel, table=True):
     level: str = ""  # ex: "Natif", "Courant", "B2"
 
     profile: Optional[Profile] = Relationship(back_populates="languages")
+
+
+class GeneratedCV(SQLModel, table=True):
+    """Historique léger : le texte d'une offre pour laquelle un CV a été
+    téléchargé. Pas de snapshot du fichier généré -- "Réutiliser" ré-exécute
+    la génération avec les données de profil actuelles.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    profile_id: Optional[int] = Field(default=None, foreign_key="profile.id")
+    offer_text: str = ""
+    offer_title: str = ""  # dérivé automatiquement (première ligne de l'offre)
+    template: str = "classique"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    profile: Optional[Profile] = Relationship(back_populates="cv_history")

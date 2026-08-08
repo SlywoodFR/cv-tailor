@@ -2,11 +2,13 @@
 
 Application locale pour centraliser des infos perso (profil, expériences, formations,
 compétences, projets, langues) dans une base SQLite, les modifier à tout moment via une
-interface web, et générer un CV automatiquement adapté à une offre d'emploi collée en texte.
+interface web, et générer un CV (3 mises en page au choix) et une lettre de motivation
+automatiquement adaptés à une offre d'emploi collée en texte.
 
 Le générateur repère les mots-clés de l'offre, met en avant les compétences correspondantes,
 réordonne les puces d'expérience pour faire remonter les plus pertinentes, et sélectionne
-les projets les plus proches de l'offre. Sans offre collée, il génère un CV générique.
+les projets les plus proches de l'offre. Sans offre collée, il génère un CV générique. Les
+offres pour lesquelles un CV a été téléchargé sont conservées dans un historique par profil.
 
 ## Installation
 
@@ -47,9 +49,18 @@ La base de données (`data/cvtailor.db`) est créée automatiquement au premier 
 2. Onglets **Expériences / Formations / Compétences / Projets / Langues** : ajouter les entrées
    (pour les compétences et projets, renseigner des mots-clés pertinents — c'est ce sur quoi
    se base le matching avec les offres).
-3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, cliquer sur "Aperçu" pour
-   voir le rendu, puis "Télécharger en PDF" (prêt à envoyer) ou "Télécharger en .docx" (pour
-   retoucher le texte dans Word avant export).
+3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, choisir une mise en page
+   (Classique, Moderne 2 colonnes, ou Compact — uniquement pour l'aperçu et le PDF, le .docx
+   garde une seule mise en page), cliquer sur "Aperçu", puis "Télécharger en PDF" (prêt à
+   envoyer) ou "Télécharger en .docx" (pour retoucher le texte dans Word avant export).
+   - **Lettre de motivation** : à partir de la même offre collée au-dessus, génère un brouillon
+     de lettre (coordonnées, accroche, expériences et compétences qui matchent l'offre, formules
+     de politesse). L'app n'utilise pas d'IA générative : c'est un gabarit rempli automatiquement,
+     à relire et personnaliser avant envoi — pas un texte poli prêt à l'emploi.
+   - **Historique des offres** : chaque CV téléchargé (PDF ou .docx) pour une offre non vide est
+     enregistré (texte de l'offre + date, pas de copie du fichier). "Réutiliser" recolle le texte
+     de l'offre pour regénérer — avec les données de profil *actuelles*, qui peuvent différer de
+     celles utilisées lors du téléchargement d'origine si le profil a changé depuis.
 
 ### Importer depuis LinkedIn
 
@@ -177,10 +188,15 @@ cv-tailor/
     database.py          -> connexion SQLite
     crud_factory.py       -> routes CRUD génériques
     cv_generator.py        -> extraction de mots-clés + scoring de pertinence
-    docx_generator.py       -> génération du CV au format Word
+    letter_generator.py     -> sélection du contenu de la lettre de motivation (même moteur)
+    docx_generator.py       -> génération du CV et de la lettre au format Word
     linkedin_import.py      -> lecture de l'export de données LinkedIn (.zip)
     linkedin_api_import.py    -> import via la Member Data Portability API (UE/EEE/Suisse)
-    templates/cv_template.html -> gabarit HTML du CV
+    templates/
+      cv_template.html         -> mise en page "Classique"
+      cv_template_moderne.html  -> mise en page "Moderne" (2 colonnes)
+      cv_template_compact.html  -> mise en page "Compact"
+      letter_template.html      -> gabarit de la lettre de motivation
   frontend/
     index.html / app.js / style.css -> interface web (aucune dépendance externe)
   data/
@@ -189,12 +205,6 @@ cv-tailor/
   docker-compose.yml   -> app + tunnel Cloudflare (cloudflared), voir "Déploiement"
   .env.example          -> modèle pour le token du tunnel Cloudflare
 ```
-
-## Pistes d'évolution
-
-- Plusieurs modèles de mise en page de CV
-- Historique des CV générés par offre
-- Lettre de motivation générée sur le même principe
 
 ## Développement
 

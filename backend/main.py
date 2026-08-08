@@ -16,12 +16,23 @@ except (ImportError, OSError):
     HTML = None
 
 from database import init_db, get_session, engine
-from models import Profile, Experience, Education, Skill, Project, Language
+from models import Profile, Experience, Education, Skill, Project, Language, GeneratedCV
 from crud_factory import make_crud_router
 from cv_generator import build_cv_context
-from docx_generator import build_docx
+from letter_generator import build_letter_context
+from docx_generator import build_docx, build_letter_docx
 from linkedin_import import parse_linkedin_export
 from linkedin_api_import import fetch_linkedin_snapshot
+
+CV_TEMPLATES = {
+    "classique": "cv_template.html",
+    "moderne": "cv_template_moderne.html",
+    "compact": "cv_template_compact.html",
+}
+
+
+def _cv_template_file(payload: dict) -> str:
+    return CV_TEMPLATES.get(payload.get("template"), CV_TEMPLATES["classique"])
 
 BASE_DIR = os.path.dirname(__file__)
 FRONTEND_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend")
@@ -88,7 +99,7 @@ def delete_profile(profile_id: int, session: Session = Depends(get_session)):
     profile = session.get(Profile, profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profil introuvable")
-    for model in (Experience, Education, Skill, Project, Language):
+    for model in (Experience, Education, Skill, Project, Language, GeneratedCV):
         for row in session.exec(select(model).where(model.profile_id == profile_id)).all():
             session.delete(row)
     session.delete(profile)
@@ -102,6 +113,47 @@ app.include_router(make_crud_router(Education, "/api/educations", "Formations"))
 app.include_router(make_crud_router(Skill, "/api/skills", "Compétences"))
 app.include_router(make_crud_router(Project, "/api/projects", "Projets"))
 app.include_router(make_crud_router(Language, "/api/languages", "Langues"))
+
+
+# ---------- Historique des offres (léger : texte + date, pas de snapshot fichier) ----------
+@app.get("/api/cv-history/", response_model=list[GeneratedCV])
+def list_cv_history(profile_id: int, session: Session = Depends(get_session)):
+    return session.exec(
+        select(GeneratedCV)
+        .where(GeneratedCV.profile_id == profile_id)
+        .order_by(GeneratedCV.created_at.desc())
+    ).all()
+
+
+@app.delete("/api/cv-history/{entry_id}")
+def delete_cv_history(entry_id: int, session: Session = Depends(get_session)):
+    entry = session.get(GeneratedCV, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entrée introuvable")
+    session.delete(entry)
+    session.commit()
+    return {"ok": True}
+
+
+def _log_cv_history(session: Session, profile_id: int, offer_text: str, template: str):
+    offer_text = (offer_text or "").strip()
+    if not offer_text:
+        return
+    existing = session.exec(
+        select(GeneratedCV).where(
+            GeneratedCV.profile_id == profile_id, GeneratedCV.offer_text == offer_text
+        )
+    ).first()
+    if existing:
+        existing.created_at = datetime.utcnow()
+        existing.template = template
+        session.add(existing)
+    else:
+        first_line = next((l.strip() for l in offer_text.splitlines() if l.strip()), offer_text)
+        session.add(GeneratedCV(
+            profile_id=profile_id, offer_text=offer_text, offer_title=first_line[:100], template=template,
+        ))
+    session.commit()
 
 
 # ---------- Import LinkedIn ----------
@@ -233,7 +285,7 @@ def generate_cv_html(payload: dict = Body(default={}), session: Session = Depend
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
     context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
-    template = jinja_env.get_template("cv_template.html")
+    template = jinja_env.get_template(_cv_template_file(payload))
     return template.render(**context)
 
 
@@ -246,12 +298,14 @@ def generate_cv_pdf(payload: dict = Body(default={}), session: Session = Depends
         )
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
+    template_key = payload.get("template", "classique")
     context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
-    template = jinja_env.get_template("cv_template.html")
+    template = jinja_env.get_template(_cv_template_file(payload))
     html = template.render(**context)
     buf = io.BytesIO()
     HTML(string=html).write_pdf(buf)
     buf.seek(0)
+    _log_cv_history(session, profile_id, offer_text, template_key)
     filename = f"CV_{context['profile'].full_name.replace(' ', '_') or 'export'}.pdf"
     return StreamingResponse(
         buf,
@@ -269,7 +323,70 @@ def generate_cv_docx(payload: dict = Body(default={}), session: Session = Depend
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
+    _log_cv_history(session, profile_id, offer_text, "classique")
     filename = f"CV_{context['profile'].full_name.replace(' ', '_') or 'export'}.docx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ---------- Génération de lettre de motivation (gabarit, pas d'IA générative) ----------
+def _gather_letter(session: Session, profile_id: int):
+    profile = session.get(Profile, profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil introuvable")
+    experiences = session.exec(select(Experience).where(Experience.profile_id == profile_id)).all()
+    skills = session.exec(select(Skill).where(Skill.profile_id == profile_id)).all()
+    return profile, experiences, skills
+
+
+@app.post("/api/generate-letter/html", response_class=HTMLResponse)
+def generate_letter_html(payload: dict = Body(default={}), session: Session = Depends(get_session)):
+    offer_text = payload.get("offer_text", "")
+    profile_id = int(payload.get("profile_id", 1))
+    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    context["today"] = datetime.now().strftime("%d/%m/%Y")
+    template = jinja_env.get_template("letter_template.html")
+    return template.render(**context)
+
+
+@app.post("/api/generate-letter/pdf")
+def generate_letter_pdf(payload: dict = Body(default={}), session: Session = Depends(get_session)):
+    if HTML is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Export PDF indisponible : bibliothèques système manquantes (voir README).",
+        )
+    offer_text = payload.get("offer_text", "")
+    profile_id = int(payload.get("profile_id", 1))
+    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    context["today"] = datetime.now().strftime("%d/%m/%Y")
+    template = jinja_env.get_template("letter_template.html")
+    html = template.render(**context)
+    buf = io.BytesIO()
+    HTML(string=html).write_pdf(buf)
+    buf.seek(0)
+    filename = f"Lettre_{context['profile'].full_name.replace(' ', '_') or 'export'}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.post("/api/generate-letter/docx")
+def generate_letter_docx_route(payload: dict = Body(default={}), session: Session = Depends(get_session)):
+    offer_text = payload.get("offer_text", "")
+    profile_id = int(payload.get("profile_id", 1))
+    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    context["today"] = datetime.now().strftime("%d/%m/%Y")
+    doc = build_letter_docx(context)
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    filename = f"Lettre_{context['profile'].full_name.replace(' ', '_') or 'export'}.docx"
     return StreamingResponse(
         buf,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

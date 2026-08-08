@@ -96,3 +96,73 @@ def build_docx(context: dict) -> Document:
         doc.add_paragraph(" | ".join(f"{l.name} — {l.level}" for l in context["languages"]))
 
     return doc
+
+
+def build_letter_docx(context: dict) -> Document:
+    profile = context["profile"]
+    doc = Document()
+
+    style = doc.styles["Normal"]
+    style.font.name = "Calibri"
+    style.font.size = Pt(11)
+
+    p = doc.add_paragraph()
+    r = p.add_run(profile.full_name)
+    r.bold = True
+    r.font.size = Pt(13)
+
+    contact_bits = [b for b in [profile.email, profile.phone, profile.location] if b]
+    if contact_bits:
+        cp = doc.add_paragraph(" · ".join(contact_bits))
+        cp.runs[0].font.color.rgb = GREY
+        cp.runs[0].font.size = Pt(9.5)
+
+    date_p = doc.add_paragraph(f"Le {context['today']}")
+    date_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    obj = doc.add_paragraph()
+    obj_text = "Objet : Candidature"
+    if context.get("job_title"):
+        obj_text += f" au poste de {context['job_title']}"
+    obj.add_run(obj_text).bold = True
+
+    doc.add_paragraph("Madame, Monsieur,")
+
+    intro = context.get("summary") or "Je vous adresse ma candidature avec grand intérêt."
+    if context.get("job_title"):
+        intro += (
+            f" C'est donc naturellement que je souhaite vous soumettre ma candidature "
+            f"pour le poste de {context['job_title']}."
+        )
+    doc.add_paragraph(intro)
+
+    if context.get("top_experiences"):
+        exps = ", ainsi que ".join(
+            f"en tant que {e.role} chez {e.company}" for e in context["top_experiences"]
+        )
+        doc.add_paragraph(
+            f"Mon parcours m'a permis de développer une expérience concrète, notamment {exps}, "
+            f"où j'ai pu mettre en pratique des compétences directement utiles au poste que "
+            f"vous proposez."
+        )
+
+    if context.get("top_skills"):
+        doc.add_paragraph(
+            f"Je maîtrise notamment {', '.join(context['top_skills'])}, des compétences que je "
+            f"serais heureux(se) de mettre au service de votre équipe."
+        )
+
+    doc.add_paragraph(
+        "Je me tiens à votre disposition pour un entretien au cours duquel je pourrais vous "
+        "exposer plus en détail ma motivation et mon parcours. Je vous remercie par avance "
+        "pour l'attention portée à ma candidature."
+    )
+    doc.add_paragraph(
+        "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées."
+    )
+
+    doc.add_paragraph()
+    sig = doc.add_paragraph()
+    sig.add_run(profile.full_name).bold = True
+
+    return doc

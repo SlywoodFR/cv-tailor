@@ -195,12 +195,38 @@
       <p class="hint">Colle une offre d'emploi ci-dessous pour adapter automatiquement l'ordre des compétences,
       des projets mis en avant et des puces d'expérience. Laisse vide pour un CV générique.</p>
       <textarea id="offer-text" rows="10" placeholder="Colle le texte de l'offre ici..."></textarea>
+
+      <label class="template-select">Mise en page
+        <select id="cv-template">
+          <option value="classique">Classique</option>
+          <option value="moderne">Moderne (2 colonnes)</option>
+          <option value="compact">Compact</option>
+        </select>
+      </label>
+
       <div class="actions">
         <button id="btn-preview">Aperçu</button>
         <button id="btn-download-pdf">Télécharger en PDF</button>
         <button id="btn-download-docx">Télécharger en .docx</button>
       </div>
-      <iframe id="cv-preview" title="Aperçu du CV"></iframe>
+      <iframe id="cv-preview" class="doc-preview" title="Aperçu du CV"></iframe>
+
+      <h2>Lettre de motivation</h2>
+      <p class="hint">Génère un brouillon de lettre à partir de la même offre collée ci-dessus
+        (met en avant les expériences et compétences qui matchent). L'app n'utilise pas d'IA
+        générative : à relire et personnaliser avant envoi.</p>
+      <div class="actions">
+        <button id="btn-letter-preview">Aperçu</button>
+        <button id="btn-letter-download-pdf">Télécharger en PDF</button>
+        <button id="btn-letter-download-docx">Télécharger en .docx</button>
+      </div>
+      <iframe id="letter-preview" class="doc-preview letter" title="Aperçu de la lettre"></iframe>
+
+      <h2>Historique des offres</h2>
+      <p class="hint">Les offres pour lesquelles un CV a été téléchargé pour ce profil.
+        "Réutiliser" recolle le texte de l'offre ci-dessus — la régénération utilise tes données
+        de profil actuelles, pas forcément identiques à celles du fichier téléchargé à l'époque.</p>
+      <div id="cv-history-list" class="item-list"></div>
     </section>
 
   </main>

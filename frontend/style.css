@@ -98,15 +98,25 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
   border-radius: 6px; cursor: pointer; font-size: 13.5px;
 }
 .actions button:hover { background: #1d4ed8; }
-#btn-download-pdf { background: #b91c1c; }
-#btn-download-pdf:hover { background: #991b1b; }
-#btn-download-docx { background: #059669; }
-#btn-download-docx:hover { background: #047857; }
+#btn-download-pdf, #btn-letter-download-pdf { background: #b91c1c; }
+#btn-download-pdf:hover, #btn-letter-download-pdf:hover { background: #991b1b; }
+#btn-download-docx, #btn-letter-download-docx { background: #059669; }
+#btn-download-docx:hover, #btn-letter-download-docx:hover { background: #047857; }
 
-#cv-preview {
+.template-select {
+  display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4b5563;
+  margin: 14px 0 0;
+}
+.template-select select {
+  font-family: inherit; font-size: 13.5px; padding: 6px 8px;
+  border: 1px solid #d1d5db; border-radius: 5px;
+}
+
+.doc-preview {
   width: 100%; max-width: 820px; height: 900px; border: 1px solid #d1d5db;
   border-radius: 8px; margin-top: 10px; background: white;
 }
+.doc-preview.letter { height: 560px; }
 .save-status { color: #059669; font-size: 13px; height: 16px; }
 
 .linkedin-import {
