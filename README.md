@@ -65,3 +65,10 @@ cv-tailor/
 - Plusieurs modèles de mise en page de CV
 - Historique des CV générés par offre
 - Lettre de motivation générée sur le même principe
+
+## Développement
+
+Projet conçu et développé avec l'assistance de [Claude Code](https://claude.com/claude-code)
+(Anthropic) : définition de l'architecture, implémentation du backend/frontend, ajout du
+support multi-profils et revue du code se sont faits en collaboration avec l'outil, avec
+relecture et validation de chaque étape.
