@@ -395,4 +395,15 @@ def generate_letter_docx_route(payload: dict = Body(default={}), session: Sessio
 
 
 # ---------- Frontend statique ----------
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+class NoCacheStaticFiles(StaticFiles):
+    """Évite que le navigateur mette en cache l'ancien app.js/style.css entre deux
+    mises à jour de l'app -- sans ça, un simple rechargement de page peut continuer
+    à servir une version obsolète du frontend."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
+app.mount("/", NoCacheStaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
