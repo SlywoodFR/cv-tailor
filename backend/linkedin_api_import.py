@@ -16,6 +16,13 @@ LINKEDIN_VERSION = "202312"
 MAX_PAGES_PER_DOMAIN = 20
 
 
+class _NoSnapshotData(Exception):
+    """LinkedIn n'a pas (encore) de données pour ce domaine : après consentement, le
+    "snapshot" se génère de façon asynchrone côté LinkedIn et peut ne pas être prêt
+    immédiatement. Ce n'est pas une erreur d'authentification.
+    """
+
+
 def _api_get(url: str, access_token: str) -> dict:
     if not url.startswith("http"):
         url = f"{API_BASE}{url}"
@@ -32,6 +39,8 @@ def _api_get(url: str, access_token: str) -> dict:
             return json.loads(resp.read())
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "ignore")
+        if e.code == 404 and "no data found" in body.lower():
+            raise _NoSnapshotData(body) from e
         raise RuntimeError(f"LinkedIn a répondu {e.code} : {body[:300]}") from e
     except urllib.error.URLError as e:
         raise RuntimeError(f"Impossible de joindre l'API LinkedIn : {e.reason}") from e
@@ -41,7 +50,10 @@ def _fetch_domain_rows(domain: str, access_token: str) -> list[dict]:
     rows: list[dict] = []
     url = f"/rest/memberSnapshotData?q=criteria&domain={domain}"
     for _ in range(MAX_PAGES_PER_DOMAIN):
-        data = _api_get(url, access_token)
+        try:
+            data = _api_get(url, access_token)
+        except _NoSnapshotData:
+            break
         for element in data.get("elements", []):
             snapshot_data = element.get("snapshotData")
             if isinstance(snapshot_data, list):
@@ -88,5 +100,13 @@ def fetch_linkedin_snapshot(access_token: str) -> dict:
         lang = map_language(row)
         if lang:
             result["languages"].append(lang)
+
+    if not any(result.values()):
+        raise RuntimeError(
+            "LinkedIn n'a encore aucune donnée disponible pour ce token. Après le "
+            "consentement, la génération du \"snapshot\" côté LinkedIn peut prendre de "
+            "quelques minutes à plusieurs heures. Réessaie plus tard avec le même token "
+            "(pas besoin d'en régénérer un tout de suite, il reste valable 60 jours)."
+        )
 
     return result
