@@ -114,6 +114,17 @@ document.getElementById("form-profile").addEventListener("submit", async (e) => 
 });
 
 // ---------- Import LinkedIn ----------
+function formatImportCounts(counts) {
+  let msg =
+    `Importé : ${counts.experiences} expérience(s), ${counts.educations} formation(s), ` +
+    `${counts.skills} compétence(s), ${counts.languages} langue(s)` +
+    (counts.profile_updated ? ", profil complété." : ".");
+  if (counts.duplicates_skipped) {
+    msg += ` ${counts.duplicates_skipped} doublon(s) déjà présent(s) ignoré(s).`;
+  }
+  return msg;
+}
+
 document.getElementById("form-linkedin-import").addEventListener("submit", async (e) => {
   e.preventDefault();
   const fileInput = document.getElementById("linkedin-file");
@@ -136,10 +147,7 @@ document.getElementById("form-linkedin-import").addEventListener("submit", async
     }
     const counts = await res.json();
     status.style.color = "#059669";
-    status.textContent =
-      `Importé : ${counts.experiences} expérience(s), ${counts.educations} formation(s), ` +
-      `${counts.skills} compétence(s), ${counts.languages} langue(s)` +
-      (counts.profile_updated ? ", profil complété." : ".");
+    status.textContent = formatImportCounts(counts);
     fileInput.value = "";
     refreshAll();
   } catch (err) {
@@ -170,10 +178,7 @@ document.getElementById("form-linkedin-api-import").addEventListener("submit", a
     }
     const counts = await res.json();
     status.style.color = "#059669";
-    status.textContent =
-      `Importé : ${counts.experiences} expérience(s), ${counts.educations} formation(s), ` +
-      `${counts.skills} compétence(s), ${counts.languages} langue(s)` +
-      (counts.profile_updated ? ", profil complété." : ".");
+    status.textContent = formatImportCounts(counts);
     tokenInput.value = "";
     refreshAll();
   } catch (err) {
@@ -325,6 +330,22 @@ document.getElementById("btn-preview").addEventListener("click", async () => {
   const html = await res.text();
   const iframe = document.getElementById("cv-preview");
   iframe.srcdoc = html;
+});
+
+document.getElementById("btn-download-pdf").addEventListener("click", async () => {
+  const offer_text = document.getElementById("offer-text").value;
+  const res = await fetch(`${API}/api/generate-cv/pdf`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ offer_text, profile_id: currentProfileId }),
+  });
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "CV.pdf";
+  a.click();
+  URL.revokeObjectURL(url);
 });
 
 document.getElementById("btn-download-docx").addEventListener("click", async () => {

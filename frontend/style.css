@@ -98,6 +98,8 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
   border-radius: 6px; cursor: pointer; font-size: 13.5px;
 }
 .actions button:hover { background: #1d4ed8; }
+#btn-download-pdf { background: #b91c1c; }
+#btn-download-pdf:hover { background: #991b1b; }
 #btn-download-docx { background: #059669; }
 #btn-download-docx:hover { background: #047857; }
 

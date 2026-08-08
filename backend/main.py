@@ -10,6 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from jinja2 import Environment, FileSystemLoader
 from sqlmodel import Session, select
 
+try:
+    from weasyprint import HTML  # nécessite Pango/cairo, voir README
+except (ImportError, OSError):
+    HTML = None
+
 from database import init_db, get_session, engine
 from models import Profile, Experience, Education, Skill, Project, Language
 from crud_factory import make_crud_router
@@ -100,6 +105,10 @@ app.include_router(make_crud_router(Language, "/api/languages", "Langues"))
 
 
 # ---------- Import LinkedIn ----------
+def _norm(value: str) -> str:
+    return (value or "").strip().lower()
+
+
 def _apply_linkedin_import(session: Session, profile: Profile, profile_id: int, data: dict) -> dict:
     profile_updated = False
     for key, value in data["profile"].items():
@@ -109,17 +118,58 @@ def _apply_linkedin_import(session: Session, profile: Profile, profile_id: int, 
     if profile_updated:
         session.add(profile)
 
-    counts = {"experiences": 0, "educations": 0, "skills": 0, "languages": 0}
+    existing_experiences = {
+        (_norm(e.company), _norm(e.role))
+        for e in session.exec(select(Experience).where(Experience.profile_id == profile_id)).all()
+    }
+    existing_educations = {
+        (_norm(e.school), _norm(e.degree))
+        for e in session.exec(select(Education).where(Education.profile_id == profile_id)).all()
+    }
+    existing_skills = {
+        _norm(s.name)
+        for s in session.exec(select(Skill).where(Skill.profile_id == profile_id)).all()
+    }
+    existing_languages = {
+        _norm(l.name)
+        for l in session.exec(select(Language).where(Language.profile_id == profile_id)).all()
+    }
+
+    counts = {"experiences": 0, "educations": 0, "skills": 0, "languages": 0, "duplicates_skipped": 0}
+
     for exp in data["experiences"]:
+        key = (_norm(exp["company"]), _norm(exp["role"]))
+        if key in existing_experiences:
+            counts["duplicates_skipped"] += 1
+            continue
+        existing_experiences.add(key)
         session.add(Experience(profile_id=profile_id, **exp))
         counts["experiences"] += 1
+
     for edu in data["educations"]:
+        key = (_norm(edu["school"]), _norm(edu["degree"]))
+        if key in existing_educations:
+            counts["duplicates_skipped"] += 1
+            continue
+        existing_educations.add(key)
         session.add(Education(profile_id=profile_id, **edu))
         counts["educations"] += 1
+
     for sk in data["skills"]:
+        key = _norm(sk["name"])
+        if key in existing_skills:
+            counts["duplicates_skipped"] += 1
+            continue
+        existing_skills.add(key)
         session.add(Skill(profile_id=profile_id, **sk))
         counts["skills"] += 1
+
     for lang in data["languages"]:
+        key = _norm(lang["name"])
+        if key in existing_languages:
+            counts["duplicates_skipped"] += 1
+            continue
+        existing_languages.add(key)
         session.add(Language(profile_id=profile_id, **lang))
         counts["languages"] += 1
 
@@ -185,6 +235,29 @@ def generate_cv_html(payload: dict = Body(default={}), session: Session = Depend
     context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
     template = jinja_env.get_template("cv_template.html")
     return template.render(**context)
+
+
+@app.post("/api/generate-cv/pdf")
+def generate_cv_pdf(payload: dict = Body(default={}), session: Session = Depends(get_session)):
+    if HTML is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Export PDF indisponible : bibliothèques système manquantes (voir README).",
+        )
+    offer_text = payload.get("offer_text", "")
+    profile_id = int(payload.get("profile_id", 1))
+    context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
+    template = jinja_env.get_template("cv_template.html")
+    html = template.render(**context)
+    buf = io.BytesIO()
+    HTML(string=html).write_pdf(buf)
+    buf.seek(0)
+    filename = f"CV_{context['profile'].full_name.replace(' ', '_') or 'export'}.pdf"
+    return StreamingResponse(
+        buf,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/api/generate-cv/docx")

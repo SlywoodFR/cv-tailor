@@ -17,6 +17,16 @@ cd cv-tailor
 pip install -r requirements.txt
 ```
 
+L'export PDF utilise [WeasyPrint](https://weasyprint.org/), qui dépend de bibliothèques
+système (Pango/cairo) en plus du `pip install` ci-dessus. Sur Debian/Ubuntu :
+
+```bash
+sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0 libcairo2 fonts-dejavu-core
+```
+
+Sans ces bibliothèques, tout le reste de l'application fonctionne normalement — seul le bouton
+"Télécharger en PDF" échouera (l'export .docx reste disponible dans tous les cas).
+
 ## Lancer l'application
 
 ```bash
@@ -38,8 +48,8 @@ La base de données (`data/cvtailor.db`) est créée automatiquement au premier 
    (pour les compétences et projets, renseigner des mots-clés pertinents — c'est ce sur quoi
    se base le matching avec les offres).
 3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, cliquer sur "Aperçu" pour
-   voir le rendu, puis "Télécharger en .docx" pour récupérer un fichier Word éditable
-   (exportable en PDF depuis Word via "Enregistrer sous").
+   voir le rendu, puis "Télécharger en PDF" (prêt à envoyer) ou "Télécharger en .docx" (pour
+   retoucher le texte dans Word avant export).
 
 ### Importer depuis LinkedIn
 
@@ -55,7 +65,11 @@ données que chaque utilisateur peut demander pour son propre compte :
    directement (inutile de le décompresser).
 
 L'import ajoute au profil actif les expériences, formations, compétences et langues trouvées
-(sans supprimer l'existant) et complète les champs de profil encore vides.
+(sans supprimer l'existant) et complète les champs de profil encore vides. Les entrées déjà
+présentes ne sont pas dupliquées : une expérience est reconnue par entreprise + poste, une
+formation par école + diplôme, une compétence ou langue par son nom (comparaison insensible à
+la casse) — ré-importer le même export plusieurs fois, ou passer du zip à l'API LinkedIn, ne
+crée donc pas de doublons.
 
 #### Alternative : import via l'API LinkedIn (membres UE/EEE/Suisse)
 
@@ -100,7 +114,6 @@ cv-tailor/
 
 ## Pistes d'évolution
 
-- Export PDF direct (actuellement HTML + DOCX, à convertir en PDF via le navigateur ou Word)
 - Plusieurs modèles de mise en page de CV
 - Historique des CV générés par offre
 - Lettre de motivation générée sur le même principe
