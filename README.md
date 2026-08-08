@@ -92,6 +92,81 @@ Le token n'est jamais stocké côté serveur (il ne sert que le temps de la requ
 au bout de 60 jours — à régénérer manuellement ensuite via le même outil. Chaque personne doit
 suivre cette procédure avec son propre compte LinkedIn pour importer son propre profil.
 
+## Déploiement en production (Unraid + Cloudflare Tunnel)
+
+L'app n'a **aucune authentification intégrée** : n'importe qui atteignant l'URL peut voir et
+modifier toutes les données de tous les profils. En production, l'accès doit donc être verrouillé
+en amont par **Cloudflare Access**, pas seulement par l'obscurité de l'URL. Le tunnel Cloudflare
+évite en plus d'ouvrir le moindre port sur le NAS ou la box : le conteneur `cv-tailor` n'est
+joignable que par `cloudflared`, via le réseau Docker interne.
+
+### 1. Récupérer le projet sur le NAS
+
+En SSH sur Unraid, dans un dossier persistant (ex. `/mnt/user/appdata/`) :
+
+```bash
+git clone <url-de-ton-repo-github> cv-tailor
+cd cv-tailor
+cp .env.example .env
+```
+
+### 2. Créer le tunnel Cloudflare
+
+Sur [le dashboard Cloudflare Zero Trust](https://one.dash.cloudflare.com/) :
+
+1. **Networks → Tunnels → Create a tunnel**, type "Cloudflared", nom `cv-tailor`.
+2. Choisir l'environnement **Docker** : Cloudflare affiche une commande `docker run ... --token
+   eyJ...`. Copier uniquement la valeur après `--token` dans `.env`, sur la ligne
+   `CLOUDFLARE_TUNNEL_TOKEN=`.
+3. Onglet **Public Hostname** du tunnel : Subdomain (ex. `cv`), Domain = ton domaine, Type
+   `HTTP`, URL `cv-tailor:8000` (nom du service Docker Compose, résolu par le réseau Docker
+   interne — pas une IP).
+
+### 3. Restreindre l'accès avec Cloudflare Access
+
+Toujours dans Zero Trust : **Access → Applications → Add an application → Self-hosted**.
+- Domain : le même hostname que ci-dessus (`cv.tondomaine.com`).
+- Policy : Action `Allow`, Include → **Emails** → lister les deux adresses email (la tienne et
+  celle de ta copine).
+
+Résultat : quiconque visite `cv.tondomaine.com` doit d'abord prouver qu'il possède l'une de ces
+deux adresses (code reçu par email) avant que Cloudflare ne relaie la moindre requête vers
+l'app. Ni mot de passe à gérer, ni compte à créer, et ça bloque tout le monde d'autre.
+
+### 4. Lancer les conteneurs
+
+```bash
+docker compose up -d --build
+```
+
+(Unraid récent inclut `docker compose` par défaut ; sinon installer le plugin **Compose
+Manager** depuis Community Applications, ou lancer la commande via SSH comme ci-dessus — les
+deux fonctionnent avec le même `docker-compose.yml`.)
+
+Les données persistent dans `./data/cvtailor.db` (monté en volume), donc `docker compose up -d
+--build` ne perd jamais les données lors d'une mise à jour.
+
+### 5. Mettre à jour l'app plus tard
+
+```bash
+cd /mnt/user/appdata/cv-tailor
+git pull
+docker compose up -d --build
+```
+
+### Accès en LAN sans passer par Cloudflare (optionnel)
+
+Par défaut `docker-compose.yml` n'expose aucun port sur l'hôte. Pour un accès direct depuis le
+réseau local (plus rapide, sans écran Cloudflare Access), ajouter dans le service `cv-tailor` :
+
+```yaml
+    ports:
+      - "8000:8000"
+```
+
+Attention : ça rend l'app accessible à quiconque est sur le réseau local **sans** la protection
+de Cloudflare Access — acceptable sur un réseau domestique de confiance, à éviter sinon.
+
 ## Structure du projet
 
 ```
@@ -110,6 +185,9 @@ cv-tailor/
     index.html / app.js / style.css -> interface web (aucune dépendance externe)
   data/
     cvtailor.db  -> base SQLite (créée automatiquement)
+  Dockerfile          -> image de l'app (inclut les libs système pour l'export PDF)
+  docker-compose.yml   -> app + tunnel Cloudflare (cloudflared), voir "Déploiement"
+  .env.example          -> modèle pour le token du tunnel Cloudflare
 ```
 
 ## Pistes d'évolution

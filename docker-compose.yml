@@ -1,0 +1,28 @@
+services:
+  cv-tailor:
+    build: .
+    container_name: cv-tailor
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    networks:
+      - cv-tailor-net
+    # Pas de "ports:" ici volontairement : le service n'est joignable que par
+    # cloudflared via le réseau Docker interne, aucun port n'est ouvert sur le
+    # NAS ni le routeur. Voir le README pour exposer aussi l'app en LAN si besoin.
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cv-tailor-cloudflared
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - cv-tailor
+    networks:
+      - cv-tailor-net
+
+networks:
+  cv-tailor-net:
+    driver: bridge
