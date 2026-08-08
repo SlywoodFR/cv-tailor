@@ -144,7 +144,22 @@ Résultat : quiconque visite `cv.tondomaine.com` doit d'abord prouver qu'il poss
 deux adresses (code reçu par email) avant que Cloudflare ne relaie la moindre requête vers
 l'app. Ni mot de passe à gérer, ni compte à créer, et ça bloque tout le monde d'autre.
 
-### 4. Lancer les conteneurs
+### 4. Désactiver le cache Cloudflare pour ce domaine
+
+cv-tailor est une app dynamique (pas un site statique), et Cloudflare met par défaut en cache
+certains fichiers (`.js`, `.css`, `.html`) au niveau de son CDN, **indépendamment** des en-têtes
+`Cache-Control` renvoyés par le serveur. Résultat concret déjà rencontré : après une mise à jour
+et un `docker compose up -d --build`, le navigateur peut continuer à recevoir l'ancienne version
+de l'app pendant un moment (ou indéfiniment sur certains réseaux), sans qu'aucun vidage de cache
+navigateur ne change quoi que ce soit — puisque le cache est côté Cloudflare, pas côté client.
+
+Pour éviter d'avoir à purger le cache manuellement après chaque mise à jour : dans le dashboard
+Cloudflare, sur la zone du domaine → **Caching → Configuration → Cache Rules → Create rule**,
+créer une règle qui matche le hostname `cv.tondomaine.com` avec l'action **Bypass cache**.
+Alternative plus rapide mais ponctuelle : **Caching → Configuration → Purge Everything** après
+chaque déploiement.
+
+### 5. Lancer les conteneurs
 
 ```bash
 docker compose up -d --build
@@ -157,7 +172,7 @@ deux fonctionnent avec le même `docker-compose.yml`.)
 Les données persistent dans `./data/cvtailor.db` (monté en volume), donc `docker compose up -d
 --build` ne perd jamais les données lors d'une mise à jour.
 
-### 5. Mettre à jour l'app plus tard
+### 6. Mettre à jour l'app plus tard
 
 ```bash
 cd /mnt/user/appdata/cv-tailor
