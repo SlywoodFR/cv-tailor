@@ -1,8 +1,9 @@
 import io
 import os
+import zipfile
 from datetime import datetime
 
-from fastapi import FastAPI, Depends, Body, HTTPException
+from fastapi import FastAPI, Depends, Body, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,7 @@ from models import Profile, Experience, Education, Skill, Project, Language
 from crud_factory import make_crud_router
 from cv_generator import build_cv_context
 from docx_generator import build_docx
+from linkedin_import import parse_linkedin_export
 
 BASE_DIR = os.path.dirname(__file__)
 FRONTEND_DIR = os.path.join(os.path.dirname(BASE_DIR), "frontend")
@@ -81,6 +83,48 @@ app.include_router(make_crud_router(Education, "/api/educations", "Formations"))
 app.include_router(make_crud_router(Skill, "/api/skills", "Compétences"))
 app.include_router(make_crud_router(Project, "/api/projects", "Projets"))
 app.include_router(make_crud_router(Language, "/api/languages", "Langues"))
+
+
+# ---------- Import LinkedIn (fichier d'export officiel .zip) ----------
+@app.post("/api/import/linkedin")
+async def import_linkedin(
+    profile_id: int, file: UploadFile = File(...), session: Session = Depends(get_session)
+):
+    profile = session.get(Profile, profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil introuvable")
+
+    content = await file.read()
+    try:
+        data = parse_linkedin_export(content)
+    except zipfile.BadZipFile:
+        raise HTTPException(status_code=400, detail="Le fichier fourni n'est pas un .zip valide")
+
+    profile_updated = False
+    for key, value in data["profile"].items():
+        if not getattr(profile, key, ""):
+            setattr(profile, key, value)
+            profile_updated = True
+    if profile_updated:
+        session.add(profile)
+
+    counts = {"experiences": 0, "educations": 0, "skills": 0, "languages": 0}
+    for exp in data["experiences"]:
+        session.add(Experience(profile_id=profile_id, **exp))
+        counts["experiences"] += 1
+    for edu in data["educations"]:
+        session.add(Education(profile_id=profile_id, **edu))
+        counts["educations"] += 1
+    for sk in data["skills"]:
+        session.add(Skill(profile_id=profile_id, **sk))
+        counts["skills"] += 1
+    for lang in data["languages"]:
+        session.add(Language(profile_id=profile_id, **lang))
+        counts["languages"] += 1
+
+    session.commit()
+    counts["profile_updated"] = profile_updated
+    return counts
 
 
 # ---------- Génération de CV ----------

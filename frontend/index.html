@@ -42,6 +42,34 @@
         <button type="submit">Enregistrer</button>
       </form>
       <p class="save-status" id="status-profile"></p>
+
+      <div class="linkedin-import">
+        <h3>Importer depuis LinkedIn</h3>
+        <details>
+          <summary>Comment récupérer son export de données LinkedIn</summary>
+          <ol>
+            <li>Sur linkedin.com, cliquer sur sa photo de profil (ou "Moi") en haut à droite,
+              puis <strong>Paramètres et confidentialité</strong>.</li>
+            <li>Dans le menu de gauche, ouvrir <strong>Confidentialité des données</strong>.</li>
+            <li>Cliquer sur <strong>Obtenir une copie de vos données</strong>
+              ("Get a copy of your data").</li>
+            <li>Choisir <strong>Télécharger l'ensemble de vos données</strong> (pour être sûr
+              d'avoir les expériences, formations, compétences et langues), puis valider.</li>
+            <li>LinkedIn envoie un email avec un lien de téléchargement (quelques minutes,
+              parfois jusqu'à 24h) vers un fichier <code>.zip</code>.</li>
+            <li>Télécharger ce <code>.zip</code> et l'importer ci-dessous — inutile de le
+              décompresser.</li>
+          </ol>
+        </details>
+        <form id="form-linkedin-import">
+          <input type="file" id="linkedin-file" accept=".zip" required>
+          <button type="submit">Importer le fichier</button>
+        </form>
+        <p class="hint">L'import ajoute au profil actif les expériences, formations,
+          compétences et langues trouvées (sans supprimer l'existant), et complète les champs
+          de profil encore vides.</p>
+        <p class="save-status" id="status-linkedin-import"></p>
+      </div>
     </section>
 
     <section id="tab-experiences" class="tab-panel">

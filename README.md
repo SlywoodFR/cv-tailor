@@ -41,6 +41,22 @@ La base de données (`data/cvtailor.db`) est créée automatiquement au premier 
    voir le rendu, puis "Télécharger en .docx" pour récupérer un fichier Word éditable
    (exportable en PDF depuis Word via "Enregistrer sous").
 
+### Importer depuis LinkedIn
+
+LinkedIn ne propose aucune API ouverte permettant de récupérer expériences, formations ou
+compétences (fermée aux tiers depuis 2015) — l'import passe donc par l'export officiel des
+données que chaque utilisateur peut demander pour son propre compte :
+
+1. Sur linkedin.com : photo de profil (ou "Moi") en haut à droite → **Paramètres et
+   confidentialité** → **Confidentialité des données** → **Obtenir une copie de vos données**.
+2. Choisir **Télécharger l'ensemble de vos données**, valider. LinkedIn envoie par email (de
+   quelques minutes à 24h) un lien vers un fichier `.zip`.
+3. Dans l'onglet **Profil**, section "Importer depuis LinkedIn", téléverser ce `.zip`
+   directement (inutile de le décompresser).
+
+L'import ajoute au profil actif les expériences, formations, compétences et langues trouvées
+(sans supprimer l'existant) et complète les champs de profil encore vides.
+
 ## Structure du projet
 
 ```
@@ -52,6 +68,7 @@ cv-tailor/
     crud_factory.py       -> routes CRUD génériques
     cv_generator.py        -> extraction de mots-clés + scoring de pertinence
     docx_generator.py       -> génération du CV au format Word
+    linkedin_import.py      -> lecture de l'export de données LinkedIn (.zip)
     templates/cv_template.html -> gabarit HTML du CV
   frontend/
     index.html / app.js / style.css -> interface web (aucune dépendance externe)
