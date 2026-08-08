@@ -1,6 +1,6 @@
 # cv-tailor
 
-Application locale pour centraliser tes infos perso (profil, expériences, formations,
+Application locale pour centraliser des infos perso (profil, expériences, formations,
 compétences, projets, langues) dans une base SQLite, les modifier à tout moment via une
 interface web, et générer un CV automatiquement adapté à une offre d'emploi collée en texte.
 
@@ -24,20 +24,20 @@ cd backend
 uvicorn main:app --reload
 ```
 
-Puis ouvre http://127.0.0.1:8000 dans ton navigateur.
+Puis ouvrir http://127.0.0.1:8000 dans un navigateur.
 
 La base de données (`data/cvtailor.db`) est créée automatiquement au premier lancement.
 
 ## Utilisation
 
-0. En haut de la barre latérale, choisis un profil dans le menu déroulant ou crée-en un
-   nouveau avec **+ Profil** (un par personne, ex. "Arthur" / "Ta copine"). Chaque profil a
+0. En haut de la barre latérale, choisir un profil dans le menu déroulant ou en créer un
+   nouveau avec **+ Profil** (un par personne, ex. deux prénoms différents). Chaque profil a
    ses propres expériences, formations, compétences, projets et langues, isolés des autres.
-1. Onglet **Profil** : renseigne tes coordonnées et ton résumé.
-2. Onglets **Expériences / Formations / Compétences / Projets / Langues** : ajoute tes entrées
-   (pour les compétences et projets, renseigne des mots-clés pertinents — c'est ce sur quoi
+1. Onglet **Profil** : renseigner les coordonnées et le résumé.
+2. Onglets **Expériences / Formations / Compétences / Projets / Langues** : ajouter les entrées
+   (pour les compétences et projets, renseigner des mots-clés pertinents — c'est ce sur quoi
    se base le matching avec les offres).
-3. Onglet **Générer un CV** : colle le texte d'une offre d'emploi, clique sur "Aperçu" pour
+3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, cliquer sur "Aperçu" pour
    voir le rendu, puis "Télécharger en .docx" pour récupérer un fichier Word éditable
    (exportable en PDF depuis Word via "Enregistrer sous").
 
