@@ -56,12 +56,19 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
   font-family: inherit; font-size: 13.5px; padding: 7px 9px;
   border: 1px solid #d1d5db; border-radius: 5px;
 }
-.form-grid button {
-  grid-column: 1 / -1; justify-self: start;
+.form-grid button[type="submit"] {
   background: #2563eb; color: white; border: none;
   padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13.5px;
 }
-.form-grid button:hover { background: #1d4ed8; }
+.form-grid button[type="submit"]:hover { background: #1d4ed8; }
+.form-grid > button[type="submit"] { grid-column: 1 / -1; justify-self: start; }
+
+.form-actions { grid-column: 1 / -1; display: flex; gap: 10px; }
+.btn-cancel-edit {
+  display: none; background: #e5e7eb; color: #374151; border: none;
+  padding: 8px 18px; border-radius: 6px; cursor: pointer; font-size: 13.5px;
+}
+.btn-cancel-edit:hover { background: #d1d5db; }
 
 .item-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
 .item-card {
@@ -71,11 +78,14 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
 .item-card .item-main { font-size: 13.5px; }
 .item-card .item-main strong { display: block; }
 .item-card .item-sub { color: #6b7280; font-size: 12px; }
-.item-card button {
-  background: #fee2e2; color: #b91c1c; border: none; border-radius: 5px;
-  padding: 5px 10px; cursor: pointer; font-size: 12px;
+.item-card .item-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.item-card .item-actions button {
+  border: none; border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 12px;
 }
-.item-card button:hover { background: #fecaca; }
+.item-card .btn-edit { background: #dbeafe; color: #1d4ed8; }
+.item-card .btn-edit:hover { background: #bfdbfe; }
+.item-card .btn-delete { background: #fee2e2; color: #b91c1c; }
+.item-card .btn-delete:hover { background: #fecaca; }
 
 .hint { color: #6b7280; font-size: 13px; max-width: 600px; }
 #offer-text {
@@ -117,3 +127,14 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
   flex: 1; min-width: 220px; font-family: inherit; font-size: 13.5px; padding: 7px 9px;
   border: 1px solid #d1d5db; border-radius: 5px;
 }
+
+.danger-zone {
+  margin-top: 28px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+  padding: 16px;
+}
+.danger-zone h3 { margin-top: 0; color: #b91c1c; }
+.btn-danger {
+  background: #b91c1c; color: white; border: none; padding: 8px 16px;
+  border-radius: 6px; cursor: pointer; font-size: 13.5px;
+}
+.btn-danger:hover { background: #991b1b; }

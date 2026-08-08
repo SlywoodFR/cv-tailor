@@ -78,6 +78,19 @@ def update_profile(profile_id: int, payload: dict = Body(...), session: Session 
     return db_item
 
 
+@app.delete("/api/profile/{profile_id}")
+def delete_profile(profile_id: int, session: Session = Depends(get_session)):
+    profile = session.get(Profile, profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profil introuvable")
+    for model in (Experience, Education, Skill, Project, Language):
+        for row in session.exec(select(model).where(model.profile_id == profile_id)).all():
+            session.delete(row)
+    session.delete(profile)
+    session.commit()
+    return {"ok": True}
+
+
 # ---------- CRUD génériques (filtrés par profile_id) ----------
 app.include_router(make_crud_router(Experience, "/api/experiences", "Expériences"))
 app.include_router(make_crud_router(Education, "/api/educations", "Formations"))

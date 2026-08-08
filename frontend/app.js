@@ -53,9 +53,30 @@ document.getElementById("btn-new-profile").addEventListener("click", async () =>
 });
 
 function refreshAll() {
+  Object.keys(collections).forEach(exitEditMode);
   loadProfile();
   Object.keys(collections).forEach(loadCollection);
 }
+
+document.getElementById("btn-delete-profile").addEventListener("click", async () => {
+  const select = document.getElementById("profile-select");
+  const label = select.options[select.selectedIndex]?.textContent || "ce profil";
+  const confirmed = confirm(
+    `Supprimer définitivement le profil "${label}" et toutes ses données ` +
+    `(expériences, formations, compétences, projets, langues) ?\n\nCette action est irréversible.`
+  );
+  if (!confirmed) return;
+
+  const res = await fetch(`${API}/api/profile/${currentProfileId}`, { method: "DELETE" });
+  if (!res.ok) {
+    alert("Erreur lors de la suppression du profil.");
+    return;
+  }
+  localStorage.removeItem("cvtailor_profile_id");
+  currentProfileId = null;
+  await loadProfiles();
+  refreshAll();
+});
 
 // ---------- Navigation entre onglets ----------
 document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -217,32 +238,78 @@ async function loadCollection(name) {
     const card = document.createElement("div");
     card.className = "item-card";
     card.innerHTML = `<div class="item-main">${render(item)}</div>`;
+
+    const actions = document.createElement("div");
+    actions.className = "item-actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "btn-edit";
+    editBtn.textContent = "Modifier";
+    editBtn.addEventListener("click", () => enterEditMode(name, item));
+    actions.appendChild(editBtn);
+
     const delBtn = document.createElement("button");
+    delBtn.type = "button";
+    delBtn.className = "btn-delete";
     delBtn.textContent = "Supprimer";
     delBtn.addEventListener("click", async () => {
       await fetch(`${API}${endpoint}/${item.id}`, { method: "DELETE" });
       loadCollection(name);
     });
-    card.appendChild(delBtn);
+    actions.appendChild(delBtn);
+
+    card.appendChild(actions);
     list.appendChild(card);
   });
 }
 
+function buildPayload(form) {
+  const payload = Object.fromEntries(new FormData(form).entries());
+  // dates vides -> null
+  for (const key of ["start_date", "end_date"]) {
+    if (key in payload && payload[key] === "") payload[key] = null;
+  }
+  return payload;
+}
+
+function enterEditMode(name, item) {
+  const form = document.getElementById(`form-${name}`);
+  for (const key in item) {
+    if (form.elements[key]) form.elements[key].value = item[key] ?? "";
+  }
+  form.dataset.editingId = item.id;
+  form.querySelector("button[type=submit]").textContent = "Enregistrer les modifications";
+  form.querySelector(".btn-cancel-edit").style.display = "";
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function exitEditMode(name) {
+  const form = document.getElementById(`form-${name}`);
+  form.reset();
+  delete form.dataset.editingId;
+  form.querySelector("button[type=submit]").textContent = "Ajouter";
+  form.querySelector(".btn-cancel-edit").style.display = "none";
+}
+
 Object.keys(collections).forEach((name) => {
   const form = document.getElementById(`form-${name}`);
+
+  form.querySelector(".btn-cancel-edit").addEventListener("click", () => exitEditMode(name));
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const payload = Object.fromEntries(new FormData(form).entries());
-    // dates vides -> null
-    for (const key of ["start_date", "end_date"]) {
-      if (key in payload && payload[key] === "") payload[key] = null;
-    }
-    await fetch(`${API}${collections[name].endpoint}/?profile_id=${currentProfileId}`, {
-      method: "POST",
+    const payload = buildPayload(form);
+    const editingId = form.dataset.editingId;
+    const url = editingId
+      ? `${API}${collections[name].endpoint}/${editingId}`
+      : `${API}${collections[name].endpoint}/?profile_id=${currentProfileId}`;
+    await fetch(url, {
+      method: editingId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    form.reset();
+    exitEditMode(name);
     loadCollection(name);
   });
 });

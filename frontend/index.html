@@ -99,6 +99,13 @@
           requête. Il expire au bout de 60 jours (à régénérer manuellement ensuite).</p>
         <p class="save-status" id="status-linkedin-api-import"></p>
       </div>
+
+      <div class="danger-zone">
+        <h3>Supprimer ce profil</h3>
+        <p class="hint">Supprime définitivement ce profil et toutes ses données (expériences,
+          formations, compétences, projets, langues). Action irréversible.</p>
+        <button type="button" id="btn-delete-profile" class="btn-danger">Supprimer ce profil</button>
+      </div>
     </section>
 
     <section id="tab-experiences" class="tab-panel">
@@ -113,7 +120,10 @@
         <label>Fin (vide = en cours) <input name="end_date" type="date"></label>
         <label class="full">Description (une puce par ligne) <textarea name="description" rows="4"></textarea></label>
         <label class="full">Mots-clés (séparés par des virgules) <input name="tags" placeholder="python, react, gestion de projet"></label>
-        <button type="submit">Ajouter</button>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
       </form>
     </section>
 
@@ -128,7 +138,10 @@
         <label>Début <input name="start_date" type="date"></label>
         <label>Fin <input name="end_date" type="date"></label>
         <label class="full">Description <textarea name="description" rows="2"></textarea></label>
-        <button type="submit">Ajouter</button>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
       </form>
     </section>
 
@@ -140,7 +153,10 @@
         <label>Nom <input name="name" required placeholder="Python"></label>
         <label>Catégorie <input name="category" placeholder="Langages"></label>
         <label>Niveau <input name="level" placeholder="Avancé"></label>
-        <button type="submit">Ajouter</button>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
       </form>
     </section>
 
@@ -153,7 +169,10 @@
         <label>Lien <input name="link" placeholder="github.com/..."></label>
         <label class="full">Description <textarea name="description" rows="3"></textarea></label>
         <label class="full">Mots-clés <input name="tags" placeholder="python, api, ia"></label>
-        <button type="submit">Ajouter</button>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
       </form>
     </section>
 
@@ -164,7 +183,10 @@
       <form id="form-languages" class="form-grid">
         <label>Langue <input name="name" required placeholder="Anglais"></label>
         <label>Niveau <input name="level" placeholder="Courant / B2 / Natif"></label>
-        <button type="submit">Ajouter</button>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
       </form>
     </section>
 
