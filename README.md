@@ -57,6 +57,27 @@ données que chaque utilisateur peut demander pour son propre compte :
 L'import ajoute au profil actif les expériences, formations, compétences et langues trouvées
 (sans supprimer l'existant) et complète les champs de profil encore vides.
 
+#### Alternative : import via l'API LinkedIn (membres UE/EEE/Suisse)
+
+LinkedIn propose depuis 2024 une API de portabilité des données ("Member Data Portability
+API"), réservée par obligation réglementaire (DMA) aux membres localisés en UE/EEE ou en
+Suisse. Elle évite d'attendre l'email d'export, au prix d'une configuration ponctuelle :
+
+1. Créer une app sur [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps),
+   obligatoirement rattachée à la page entreprise
+   **"Member Data Portability (Member) Default Company"** fournie par LinkedIn (ne pas créer
+   de nouvelle page).
+2. Dans l'onglet **Products** de l'app, demander l'accès à
+   **"Member Data Portability API (Member)"** (accordé automatiquement après acceptation des
+   CGU, pas d'attente de validation).
+3. Dans **Docs and tools → OAuth Token Tools**, générer un access token pour cette app avec le
+   scope `r_dma_portability_self_serve`, et consentir depuis l'écran LinkedIn qui s'affiche.
+4. Coller ce token dans le bloc "Ou importer via l'API LinkedIn" de l'onglet Profil.
+
+Le token n'est jamais stocké côté serveur (il ne sert que le temps de la requête) et expire
+au bout de 60 jours — à régénérer manuellement ensuite via le même outil. Chaque personne doit
+suivre cette procédure avec son propre compte LinkedIn pour importer son propre profil.
+
 ## Structure du projet
 
 ```
@@ -69,6 +90,7 @@ cv-tailor/
     cv_generator.py        -> extraction de mots-clés + scoring de pertinence
     docx_generator.py       -> génération du CV au format Word
     linkedin_import.py      -> lecture de l'export de données LinkedIn (.zip)
+    linkedin_api_import.py    -> import via la Member Data Portability API (UE/EEE/Suisse)
     templates/cv_template.html -> gabarit HTML du CV
   frontend/
     index.html / app.js / style.css -> interface web (aucune dépendance externe)

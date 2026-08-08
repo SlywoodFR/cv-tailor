@@ -112,3 +112,8 @@ h3 { margin-top: 24px; font-size: 15px; color: #374151; }
   border-radius: 6px; cursor: pointer; font-size: 13.5px;
 }
 .linkedin-import button:hover { background: #1d4ed8; }
+.linkedin-import .li-sep { border: none; border-top: 1px solid #e5e7eb; margin: 18px 0; }
+.linkedin-import input[type="password"] {
+  flex: 1; min-width: 220px; font-family: inherit; font-size: 13.5px; padding: 7px 9px;
+  border: 1px solid #d1d5db; border-radius: 5px;
+}

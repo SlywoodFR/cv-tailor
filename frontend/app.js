@@ -127,6 +127,40 @@ document.getElementById("form-linkedin-import").addEventListener("submit", async
   }
 });
 
+document.getElementById("form-linkedin-api-import").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const tokenInput = document.getElementById("linkedin-token");
+  const status = document.getElementById("status-linkedin-api-import");
+  const access_token = tokenInput.value.trim();
+  if (!access_token) return;
+
+  status.style.color = "#374151";
+  status.textContent = "Import en cours...";
+
+  try {
+    const res = await fetch(`${API}/api/import/linkedin-api?profile_id=${currentProfileId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ access_token }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Échec de l'import");
+    }
+    const counts = await res.json();
+    status.style.color = "#059669";
+    status.textContent =
+      `Importé : ${counts.experiences} expérience(s), ${counts.educations} formation(s), ` +
+      `${counts.skills} compétence(s), ${counts.languages} langue(s)` +
+      (counts.profile_updated ? ", profil complété." : ".");
+    tokenInput.value = "";
+    refreshAll();
+  } catch (err) {
+    status.style.color = "#b91c1c";
+    status.textContent = "Erreur : " + err.message;
+  }
+});
+
 // ---------- Collections génériques (expériences, formations, compétences, projets, langues) ----------
 const collections = {
   experiences: {

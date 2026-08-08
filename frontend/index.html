@@ -69,6 +69,35 @@
           compétences et langues trouvées (sans supprimer l'existant), et complète les champs
           de profil encore vides.</p>
         <p class="save-status" id="status-linkedin-import"></p>
+
+        <hr class="li-sep">
+
+        <details>
+          <summary>Ou importer via l'API LinkedIn (avec un access token)</summary>
+          <p class="hint">Réservé aux membres localisés UE/EEE/Suisse sur leur profil
+            LinkedIn (condition imposée par LinkedIn).</p>
+          <ol>
+            <li>Créer une app sur
+              <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener">linkedin.com/developers/apps</a>,
+              rattachée obligatoirement à la page entreprise
+              <strong>"Member Data Portability (Member) Default Company"</strong>
+              (ne pas créer de nouvelle page).</li>
+            <li>Dans l'onglet <strong>Products</strong> de l'app, demander l'accès à
+              <strong>"Member Data Portability API (Member)"</strong> (accordé automatiquement
+              après acceptation des CGU).</li>
+            <li>Dans le portail développeur, menu <strong>Docs and tools → OAuth Token
+              Tools</strong>, générer un token pour cette app avec le scope
+              <code>r_dma_portability_self_serve</code>, et se connecter pour consentir.</li>
+            <li>Coller ce token ci-dessous.</li>
+          </ol>
+        </details>
+        <form id="form-linkedin-api-import">
+          <input type="password" id="linkedin-token" placeholder="Access token LinkedIn" required>
+          <button type="submit">Importer via l'API</button>
+        </form>
+        <p class="hint">Le token n'est jamais enregistré côté serveur, il ne sert qu'à cette
+          requête. Il expire au bout de 60 jours (à régénérer manuellement ensuite).</p>
+        <p class="save-status" id="status-linkedin-api-import"></p>
       </div>
     </section>
 
