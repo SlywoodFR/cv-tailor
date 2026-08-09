@@ -325,6 +325,30 @@ function currentTemplate() {
   return document.getElementById("cv-template").value;
 }
 
+function currentAiProvider() {
+  return document.getElementById("ai-provider").value;
+}
+
+async function loadAiStatus() {
+  const res = await fetch(`${API}/api/ai/status`);
+  const status = await res.json();
+  const select = document.getElementById("ai-provider");
+  if (status.anthropic) select.add(new Option("IA — Anthropic (Claude)", "anthropic"));
+  if (status.openai) select.add(new Option("IA — OpenAI (GPT)", "openai"));
+  if (status.gemini) select.add(new Option("IA — Google Gemini", "gemini"));
+}
+
+function setAiGenerateStatus() {
+  const status = document.getElementById("status-ai-generate");
+  status.textContent = currentAiProvider()
+    ? "Génération IA en cours (peut prendre jusqu'à une minute)..."
+    : "";
+}
+
+function clearAiGenerateStatus() {
+  document.getElementById("status-ai-generate").textContent = "";
+}
+
 async function downloadBlob(url, payload, filename) {
   const res = await fetch(url, {
     method: "POST",
@@ -347,63 +371,89 @@ async function downloadBlob(url, payload, filename) {
 
 document.getElementById("btn-preview").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   const res = await fetch(`${API}/api/generate-cv/html`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ offer_text, profile_id: currentProfileId, template: currentTemplate() }),
+    body: JSON.stringify({
+      offer_text, profile_id: currentProfileId, template: currentTemplate(), ai_provider: currentAiProvider(),
+    }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    clearAiGenerateStatus();
+    alert(err.detail || "Échec de la génération du CV.");
+    return;
+  }
   const html = await res.text();
   document.getElementById("cv-preview").srcdoc = html;
+  clearAiGenerateStatus();
 });
 
 document.getElementById("btn-download-pdf").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   await downloadBlob(
     `${API}/api/generate-cv/pdf`,
-    { offer_text, profile_id: currentProfileId, template: currentTemplate() },
+    { offer_text, profile_id: currentProfileId, template: currentTemplate(), ai_provider: currentAiProvider() },
     "CV.pdf"
   );
+  clearAiGenerateStatus();
   loadCvHistory();
 });
 
 document.getElementById("btn-download-docx").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   await downloadBlob(
     `${API}/api/generate-cv/docx`,
-    { offer_text, profile_id: currentProfileId },
+    { offer_text, profile_id: currentProfileId, ai_provider: currentAiProvider() },
     "CV.docx"
   );
+  clearAiGenerateStatus();
   loadCvHistory();
 });
 
 // ---------- Lettre de motivation ----------
 document.getElementById("btn-letter-preview").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   const res = await fetch(`${API}/api/generate-letter/html`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ offer_text, profile_id: currentProfileId }),
+    body: JSON.stringify({ offer_text, profile_id: currentProfileId, ai_provider: currentAiProvider() }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    clearAiGenerateStatus();
+    alert(err.detail || "Échec de la génération de la lettre.");
+    return;
+  }
   const html = await res.text();
   document.getElementById("letter-preview").srcdoc = html;
+  clearAiGenerateStatus();
 });
 
 document.getElementById("btn-letter-download-pdf").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   await downloadBlob(
     `${API}/api/generate-letter/pdf`,
-    { offer_text, profile_id: currentProfileId },
+    { offer_text, profile_id: currentProfileId, ai_provider: currentAiProvider() },
     "Lettre.pdf"
   );
+  clearAiGenerateStatus();
 });
 
 document.getElementById("btn-letter-download-docx").addEventListener("click", async () => {
   const offer_text = document.getElementById("offer-text").value;
+  setAiGenerateStatus();
   await downloadBlob(
     `${API}/api/generate-letter/docx`,
-    { offer_text, profile_id: currentProfileId },
+    { offer_text, profile_id: currentProfileId, ai_provider: currentAiProvider() },
     "Lettre.docx"
   );
+  clearAiGenerateStatus();
 });
 
 // ---------- Historique des offres ----------
@@ -455,3 +505,4 @@ async function loadCvHistory() {
 
 // ---------- Init ----------
 loadProfiles().then(refreshAll);
+loadAiStatus();

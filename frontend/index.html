@@ -204,6 +204,17 @@
         </select>
       </label>
 
+      <label class="template-select">Mode
+        <select id="ai-provider">
+          <option value="">Mécanique (mots-clés)</option>
+        </select>
+      </label>
+      <p class="hint">En mode mécanique, aucune donnée ne quitte le serveur. En mode IA, le
+        profil et l'offre sont envoyés au fournisseur choisi (Anthropic ou OpenAI) pour la
+        génération — et si l'offre est dans une autre langue, le CV/lettre sont rédigés dans
+        cette langue.</p>
+      <p class="save-status" id="status-ai-generate"></p>
+
       <div class="actions">
         <button id="btn-preview">Aperçu</button>
         <button id="btn-download-pdf">Télécharger en PDF</button>
@@ -213,8 +224,9 @@
 
       <h2>Lettre de motivation</h2>
       <p class="hint">Génère un brouillon de lettre à partir de la même offre collée ci-dessus
-        (met en avant les expériences et compétences qui matchent). L'app n'utilise pas d'IA
-        générative : à relire et personnaliser avant envoi.</p>
+        (met en avant les expériences et compétences qui matchent). En mode mécanique, c'est un
+        gabarit rempli automatiquement, à relire avant envoi ; en mode IA (voir ci-dessus),
+        c'est une lettre entièrement rédigée par le modèle choisi.</p>
       <div class="actions">
         <button id="btn-letter-preview">Aperçu</button>
         <button id="btn-letter-download-pdf">Télécharger en PDF</button>

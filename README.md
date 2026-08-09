@@ -29,6 +29,13 @@ sudo apt-get install libpango-1.0-0 libpangoft2-1.0-0 libgdk-pixbuf-2.0-0 libcai
 Sans ces bibliothèques, tout le reste de l'application fonctionne normalement — seul le bouton
 "Télécharger en PDF" échouera (l'export .docx reste disponible dans tous les cas).
 
+Optionnel, pour activer le [mode IA](#mode-ia-traduction--rédaction-par-un-llm) : copier
+`.env.example` en `.env` et renseigner une ou plusieurs de `ANTHROPIC_API_KEY`,
+`OPENAI_API_KEY`, `GEMINI_API_KEY`. Sans ce fichier (ou avec les trois variables vides), l'app
+fonctionne normalement en mode mécanique uniquement. `GEMINI_API_KEY` est la plus simple à
+obtenir sans frais : une clé gratuite sur [aistudio.google.com](https://aistudio.google.com/)
+(aucune carte bancaire requise) donne accès à Gemini Flash avec un quota quotidien généreux.
+
 ## Lancer l'application
 
 ```bash
@@ -51,16 +58,49 @@ La base de données (`data/cvtailor.db`) est créée automatiquement au premier 
    se base le matching avec les offres).
 3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, choisir une mise en page
    (Classique, Moderne 2 colonnes, ou Compact — uniquement pour l'aperçu et le PDF, le .docx
-   garde une seule mise en page), cliquer sur "Aperçu", puis "Télécharger en PDF" (prêt à
-   envoyer) ou "Télécharger en .docx" (pour retoucher le texte dans Word avant export).
+   garde une seule mise en page) et un mode de génération (Mécanique, ou IA si une clé est
+   configurée — voir [Mode IA](#mode-ia-traduction--rédaction-par-un-llm) ci-dessous), cliquer
+   sur "Aperçu", puis "Télécharger en PDF" (prêt à envoyer) ou "Télécharger en .docx" (pour
+   retoucher le texte dans Word avant export).
    - **Lettre de motivation** : à partir de la même offre collée au-dessus, génère un brouillon
      de lettre (coordonnées, accroche, expériences et compétences qui matchent l'offre, formules
-     de politesse). L'app n'utilise pas d'IA générative : c'est un gabarit rempli automatiquement,
-     à relire et personnaliser avant envoi — pas un texte poli prêt à l'emploi.
+     de politesse). En mode mécanique (par défaut, sans clé IA configurée) : un gabarit rempli
+     automatiquement, à relire et personnaliser avant envoi — pas un texte poli prêt à l'emploi.
+     En mode IA : une lettre entièrement rédigée par le modèle choisi.
    - **Historique des offres** : chaque CV téléchargé (PDF ou .docx) pour une offre non vide est
      enregistré (texte de l'offre + date, pas de copie du fichier). "Réutiliser" recolle le texte
      de l'offre pour regénérer — avec les données de profil *actuelles*, qui peuvent différer de
      celles utilisées lors du téléchargement d'origine si le profil a changé depuis.
+
+### Mode IA (traduction + rédaction par un LLM)
+
+Par défaut, la génération est 100% mécanique et locale : matching par mots-clés, aucune donnée
+n'est envoyée où que ce soit. En configurant au moins une clé API (Anthropic, OpenAI et/ou
+Google Gemini — voir [Installation](#installation)), un mode IA optionnel apparaît dans le
+sélecteur "Mode" de l'onglet **Générer un CV**, avec une option par fournisseur configuré — un
+seul appel au modèle choisi qui sélectionne le contenu pertinent par rapport à l'offre ET le
+rédige, dans la langue de l'offre (traduction automatique si l'offre est dans une langue
+différente du profil). Sans offre collée, le mode IA se contente de reformuler légèrement, dans
+la langue d'origine du profil.
+
+À savoir avant d'activer ce mode :
+- **Chaque clic sur "Aperçu"/"Télécharger en PDF"/"Télécharger en .docx" déclenche un vrai appel**
+  au fournisseur choisi (pas de mise en cache), et peut prendre jusqu'à une minute. Payant pour
+  Anthropic/OpenAI ; Gemini a un niveau gratuit (voir Installation) mais avec des quotas
+  quotidiens limités.
+- **Confidentialité** : en mode IA, le profil complet (coordonnées, expériences, formations,
+  compétences) et le texte de l'offre quittent le serveur vers le fournisseur choisi. En mode
+  mécanique, rien ne sort du serveur. Sur le niveau gratuit de Gemini spécifiquement, les
+  conditions de Google autorisent l'utilisation des données envoyées/reçues pour améliorer leurs
+  modèles — à garder en tête si le contenu du profil est sensible.
+- Le modèle ne peut que sélectionner/réordonner/traduire les données du profil, jamais en
+  inventer (aucune expérience, compétence ou diplôme fictif).
+- Export PDF et scripts non-latins : les polices installées dans le `Dockerfile`
+  (`fonts-dejavu-core`) ne couvrent que les scripts latins/cyrillique/grec. Un CV traduit en
+  japonais, arabe, etc. s'affiche correctement en aperçu HTML et en .docx (polices du système
+  qui l'ouvre), mais peut afficher des glyphes manquants dans l'export **PDF** généré côté
+  serveur (WeasyPrint) — ajouter des polices adaptées (ex. `fonts-noto-cjk`) au `Dockerfile` si
+  besoin.
 
 ### Importer depuis LinkedIn
 
@@ -207,18 +247,20 @@ cv-tailor/
     docx_generator.py       -> génération du CV et de la lettre au format Word
     linkedin_import.py      -> lecture de l'export de données LinkedIn (.zip)
     linkedin_api_import.py    -> import via la Member Data Portability API (UE/EEE/Suisse)
+    ai_generator.py         -> mode IA : sélection + rédaction/traduction via Anthropic/OpenAI
     templates/
       cv_template.html         -> mise en page "Classique"
       cv_template_moderne.html  -> mise en page "Moderne" (2 colonnes)
       cv_template_compact.html  -> mise en page "Compact"
-      letter_template.html      -> gabarit de la lettre de motivation
+      letter_template.html      -> gabarit de la lettre de motivation (mode mécanique)
+      letter_template_ai.html    -> gabarit de la lettre de motivation (mode IA)
   frontend/
     index.html / app.js / style.css -> interface web (aucune dépendance externe)
   data/
     cvtailor.db  -> base SQLite (créée automatiquement)
   Dockerfile          -> image de l'app (inclut les libs système pour l'export PDF)
   docker-compose.yml   -> app + tunnel Cloudflare (cloudflared), voir "Déploiement"
-  .env.example          -> modèle pour le token du tunnel Cloudflare
+  .env.example          -> modèle pour le token du tunnel Cloudflare + les clés IA optionnelles
 ```
 
 ## Développement

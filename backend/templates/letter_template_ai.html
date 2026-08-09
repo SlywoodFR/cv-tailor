@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="{{ lang_code }}">
+<head>
+<meta charset="UTF-8">
+<title>Lettre de motivation - {{ profile.full_name }}</title>
+<style>
+  @page { size: A4; margin: 22mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; font-size: 13px;
+    line-height: 1.6; max-width: 700px; margin: 0 auto;
+  }
+  .sender { margin-bottom: 26px; }
+  .sender strong { display: block; font-size: 15px; color: #111827; }
+  .contact { color: #4b5563; font-size: 12px; margin-top: 2px; }
+  .date { text-align: right; margin-bottom: 26px; color: #374151; }
+  .object { font-weight: 600; margin-bottom: 18px; color: #111827; }
+  p { margin: 0 0 14px; text-align: justify; }
+  .signature { margin-top: 30px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="sender">
+  <strong>{{ profile.full_name }}</strong>
+  <div class="contact">
+    {% if profile.email %}{{ profile.email }}{% endif %}
+    {% if profile.phone %} · {{ profile.phone }}{% endif %}
+    {% if profile.location %} · {{ profile.location }}{% endif %}
+  </div>
+</div>
+
+<div class="date">{{ today }}</div>
+
+<div class="object">{{ subject_line }}</div>
+
+<p>{{ salutation }}</p>
+
+{% for paragraph in paragraphs %}
+<p>{{ paragraph }}</p>
+{% endfor %}
+
+<p>{{ closing }}</p>
+
+<div class="signature">{{ profile.full_name }}</div>
+
+</body>
+</html>

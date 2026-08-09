@@ -5,3 +5,7 @@ python-docx
 jinja2
 python-multipart
 weasyprint
+python-dotenv
+anthropic
+openai
+google-genai

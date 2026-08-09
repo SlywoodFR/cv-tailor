@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ labels.lang_code }}">
 <head>
 <meta charset="UTF-8">
 <title>CV - {{ profile.full_name }}</title>
@@ -47,7 +47,7 @@
     <h1>{{ profile.full_name }}</h1>
     {% if summary %}<div class="headline">{{ summary[:90] }}{% if summary|length > 90 %}…{% endif %}</div>{% endif %}
 
-    <h3>Contact</h3>
+    <h3>{{ labels.contact }}</h3>
     {% if profile.email %}<div class="contact-item">{{ profile.email }}</div>{% endif %}
     {% if profile.phone %}<div class="contact-item">{{ profile.phone }}</div>{% endif %}
     {% if profile.location %}<div class="contact-item">{{ profile.location }}</div>{% endif %}
@@ -56,7 +56,7 @@
     {% if profile.website %}<div class="contact-item">{{ profile.website }}</div>{% endif %}
 
     {% if skills_by_category %}
-    <h3>Compétences</h3>
+    <h3>{{ labels.skills }}</h3>
     {% for cat, items in skills_by_category.items() %}
     <div class="skill-cat">
       <div class="skill-cat-name">{{ cat }}</div>
@@ -66,7 +66,7 @@
     {% endif %}
 
     {% if languages %}
-    <h3>Langues</h3>
+    <h3>{{ labels.languages }}</h3>
     {% for l in languages %}<div class="lang-item">{{ l.name }} — {{ l.level }}</div>{% endfor %}
     {% endif %}
   </aside>
@@ -76,12 +76,12 @@
 
     {% if experiences %}
     <section>
-      <h2>Expériences</h2>
+      <h2>{{ labels.experiences }}</h2>
       {% for e in experiences %}
       <div class="entry">
         <div class="entry-header">
           <span>{{ e.role }} — {{ e.company }}</span>
-          <span>{{ e.start_date.strftime('%m/%Y') if e.start_date else '' }} – {{ e.end_date.strftime('%m/%Y') if e.end_date else 'en cours' }}</span>
+          <span>{{ e.start_date.strftime('%m/%Y') if e.start_date else '' }} – {{ e.end_date.strftime('%m/%Y') if e.end_date else labels.current }}</span>
         </div>
         <div class="entry-sub">{{ e.location }}</div>
         {% if e.bullets %}<ul>{% for b in e.bullets %}<li>{{ b }}</li>{% endfor %}</ul>{% endif %}
@@ -92,7 +92,7 @@
 
     {% if projects %}
     <section>
-      <h2>Projets</h2>
+      <h2>{{ labels.projects }}</h2>
       {% for p in projects %}
       <div class="entry">
         <div class="entry-header"><span>{{ p.name }}</span>{% if p.link %}<span>{{ p.link }}</span>{% endif %}</div>
@@ -104,12 +104,12 @@
 
     {% if educations %}
     <section>
-      <h2>Formation</h2>
+      <h2>{{ labels.education }}</h2>
       {% for ed in educations %}
       <div class="entry">
         <div class="entry-header">
           <span>{{ ed.degree }}{% if ed.field %} — {{ ed.field }}{% endif %}, {{ ed.school }}</span>
-          <span>{{ ed.start_date.strftime('%Y') if ed.start_date else '' }} – {{ ed.end_date.strftime('%Y') if ed.end_date else 'en cours' }}</span>
+          <span>{{ ed.start_date.strftime('%Y') if ed.start_date else '' }} – {{ ed.end_date.strftime('%Y') if ed.end_date else labels.current }}</span>
         </div>
         {% if ed.description %}<div>{{ ed.description }}</div>{% endif %}
       </div>

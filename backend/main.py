@@ -3,6 +3,11 @@ import os
 import zipfile
 from datetime import datetime
 
+from dotenv import load_dotenv
+
+load_dotenv()  # confort en dev local (uvicorn --reload) ; no-op en Docker, où
+                # docker-compose injecte déjà de vraies variables d'environnement
+
 from fastapi import FastAPI, Depends, Body, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -20,9 +25,10 @@ from models import Profile, Experience, Education, Skill, Project, Language, Gen
 from crud_factory import make_crud_router
 from cv_generator import build_cv_context
 from letter_generator import build_letter_context
-from docx_generator import build_docx, build_letter_docx
+from docx_generator import build_docx, build_letter_docx, build_letter_docx_ai
 from linkedin_import import parse_linkedin_export
 from linkedin_api_import import fetch_linkedin_snapshot
+from ai_generator import ai_status, generate_cv_context_ai, generate_letter_context_ai
 
 CV_TEMPLATES = {
     "classique": "cv_template.html",
@@ -267,6 +273,12 @@ def import_linkedin_api(
     return _apply_linkedin_import(session, profile, profile_id, data)
 
 
+# ---------- Mode IA ----------
+@app.get("/api/ai/status")
+def get_ai_status():
+    return ai_status()
+
+
 # ---------- Génération de CV ----------
 def _gather(session: Session, profile_id: int):
     profile = session.get(Profile, profile_id)
@@ -280,11 +292,21 @@ def _gather(session: Session, profile_id: int):
     return profile, experiences, educations, skills, projects, languages
 
 
+def _build_cv_context(session: Session, profile_id: int, offer_text: str, ai_provider):
+    ai_provider = (ai_provider or "").strip()
+    if ai_provider:
+        try:
+            return generate_cv_context_ai(ai_provider, *_gather(session, profile_id), offer_text=offer_text)
+        except RuntimeError as e:
+            raise HTTPException(status_code=502, detail=str(e))
+    return build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
+
+
 @app.post("/api/generate-cv/html", response_class=HTMLResponse)
 def generate_cv_html(payload: dict = Body(default={}), session: Session = Depends(get_session)):
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
-    context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
+    context = _build_cv_context(session, profile_id, offer_text, payload.get("ai_provider"))
     template = jinja_env.get_template(_cv_template_file(payload))
     return template.render(**context)
 
@@ -299,7 +321,7 @@ def generate_cv_pdf(payload: dict = Body(default={}), session: Session = Depends
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
     template_key = payload.get("template", "classique")
-    context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
+    context = _build_cv_context(session, profile_id, offer_text, payload.get("ai_provider"))
     template = jinja_env.get_template(_cv_template_file(payload))
     html = template.render(**context)
     buf = io.BytesIO()
@@ -318,7 +340,7 @@ def generate_cv_pdf(payload: dict = Body(default={}), session: Session = Depends
 def generate_cv_docx(payload: dict = Body(default={}), session: Session = Depends(get_session)):
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
-    context = build_cv_context(*_gather(session, profile_id), offer_text=offer_text)
+    context = _build_cv_context(session, profile_id, offer_text, payload.get("ai_provider"))
     doc = build_docx(context)
     buf = io.BytesIO()
     doc.save(buf)
@@ -332,7 +354,7 @@ def generate_cv_docx(payload: dict = Body(default={}), session: Session = Depend
     )
 
 
-# ---------- Génération de lettre de motivation (gabarit, pas d'IA générative) ----------
+# ---------- Génération de lettre de motivation (gabarit mécanique, ou IA si ai_provider) ----------
 def _gather_letter(session: Session, profile_id: int):
     profile = session.get(Profile, profile_id)
     if not profile:
@@ -342,13 +364,26 @@ def _gather_letter(session: Session, profile_id: int):
     return profile, experiences, skills
 
 
+def _build_letter_context(session: Session, profile_id: int, offer_text: str, ai_provider):
+    ai_provider = (ai_provider or "").strip()
+    if ai_provider:
+        try:
+            return generate_letter_context_ai(
+                ai_provider, *_gather_letter(session, profile_id), offer_text=offer_text
+            )
+        except RuntimeError as e:
+            raise HTTPException(status_code=502, detail=str(e))
+    return build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+
+
 @app.post("/api/generate-letter/html", response_class=HTMLResponse)
 def generate_letter_html(payload: dict = Body(default={}), session: Session = Depends(get_session)):
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
-    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    ai_provider = (payload.get("ai_provider") or "").strip()
+    context = _build_letter_context(session, profile_id, offer_text, ai_provider)
     context["today"] = datetime.now().strftime("%d/%m/%Y")
-    template = jinja_env.get_template("letter_template.html")
+    template = jinja_env.get_template("letter_template_ai.html" if ai_provider else "letter_template.html")
     return template.render(**context)
 
 
@@ -361,9 +396,10 @@ def generate_letter_pdf(payload: dict = Body(default={}), session: Session = Dep
         )
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
-    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    ai_provider = (payload.get("ai_provider") or "").strip()
+    context = _build_letter_context(session, profile_id, offer_text, ai_provider)
     context["today"] = datetime.now().strftime("%d/%m/%Y")
-    template = jinja_env.get_template("letter_template.html")
+    template = jinja_env.get_template("letter_template_ai.html" if ai_provider else "letter_template.html")
     html = template.render(**context)
     buf = io.BytesIO()
     HTML(string=html).write_pdf(buf)
@@ -380,9 +416,10 @@ def generate_letter_pdf(payload: dict = Body(default={}), session: Session = Dep
 def generate_letter_docx_route(payload: dict = Body(default={}), session: Session = Depends(get_session)):
     offer_text = payload.get("offer_text", "")
     profile_id = int(payload.get("profile_id", 1))
-    context = build_letter_context(*_gather_letter(session, profile_id), offer_text=offer_text)
+    ai_provider = (payload.get("ai_provider") or "").strip()
+    context = _build_letter_context(session, profile_id, offer_text, ai_provider)
     context["today"] = datetime.now().strftime("%d/%m/%Y")
-    doc = build_letter_docx(context)
+    doc = build_letter_docx_ai(context) if ai_provider else build_letter_docx(context)
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)

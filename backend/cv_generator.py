@@ -28,6 +28,19 @@ recherche recherchons cherche cherchons candidat candidature h f
 
 WORD_RE = re.compile(r"[a-zàâäéèêëïîôöùûüçA-ZÀÂÄÉÈÊËÏÎÔÖÙÛÜÇ0-9+#\.\-]{2,}")
 
+# Titres de section par défaut (mode mécanique, toujours en français). Le mode IA
+# (ai_generator.py) fournit sa propre traduction sous la même forme.
+DEFAULT_CV_LABELS = {
+    "experiences": "Expériences",
+    "education": "Formation",
+    "skills": "Compétences",
+    "projects": "Projets",
+    "languages": "Langues",
+    "contact": "Contact",
+    "current": "en cours",
+    "lang_code": "fr",
+}
+
 
 def extract_keywords(text: str) -> Counter:
     if not text:
@@ -128,6 +141,7 @@ def build_cv_context(profile, experiences, educations, skills, projects, languag
 
     return {
         "profile": profile,
+        "labels": DEFAULT_CV_LABELS,
         "summary": profile.summary,
         "skills_by_category": skills_by_category,
         "experiences": exp_context,

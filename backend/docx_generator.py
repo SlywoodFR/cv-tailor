@@ -4,6 +4,8 @@ from docx import Document
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+from cv_generator import DEFAULT_CV_LABELS
+
 
 BLUE = RGBColor(0x25, 0x63, 0xEB)
 GREY = RGBColor(0x4B, 0x55, 0x63)
@@ -15,6 +17,7 @@ def _fmt(d, fmt):
 
 def build_docx(context: dict) -> Document:
     profile = context["profile"]
+    labels = context.get("labels", DEFAULT_CV_LABELS)
     doc = Document()
 
     style = doc.styles["Normal"]
@@ -45,12 +48,12 @@ def build_docx(context: dict) -> Document:
             run.font.size = Pt(12)
 
     if context.get("experiences"):
-        add_heading("Expériences")
+        add_heading(labels["experiences"])
         for e in context["experiences"]:
             p = doc.add_paragraph()
             r = p.add_run(f"{e['role']} — {e['company']}")
             r.bold = True
-            dates = f"{_fmt(e['start_date'], '%m/%Y')} – {_fmt(e['end_date'], '%m/%Y') or 'en cours'}"
+            dates = f"{_fmt(e['start_date'], '%m/%Y')} – {_fmt(e['end_date'], '%m/%Y') or labels['current']}"
             p.add_run(f"    ({dates})").italic = True
             if e.get("location"):
                 loc = doc.add_paragraph(e["location"])
@@ -60,7 +63,7 @@ def build_docx(context: dict) -> Document:
                 doc.add_paragraph(b, style="List Bullet")
 
     if context.get("skills_by_category"):
-        add_heading("Compétences")
+        add_heading(labels["skills"])
         for cat, items in context["skills_by_category"].items():
             p = doc.add_paragraph()
             p.add_run(f"{cat} : ").bold = True
@@ -70,7 +73,7 @@ def build_docx(context: dict) -> Document:
             p.add_run(names)
 
     if context.get("projects"):
-        add_heading("Projets")
+        add_heading(labels["projects"])
         for pr in context["projects"]:
             p = doc.add_paragraph()
             p.add_run(pr["name"]).bold = True
@@ -80,19 +83,19 @@ def build_docx(context: dict) -> Document:
                 doc.add_paragraph(pr["description"])
 
     if context.get("educations"):
-        add_heading("Formation")
+        add_heading(labels["education"])
         for ed in context["educations"]:
             p = doc.add_paragraph()
             label = ed.degree + (f" — {ed.field}" if ed.field else "") + f", {ed.school}"
             r = p.add_run(label)
             r.bold = True
-            years = f"{_fmt(ed.start_date, '%Y')} – {_fmt(ed.end_date, '%Y') or 'en cours'}"
+            years = f"{_fmt(ed.start_date, '%Y')} – {_fmt(ed.end_date, '%Y') or labels['current']}"
             p.add_run(f"    ({years})").italic = True
             if ed.description:
                 doc.add_paragraph(ed.description)
 
     if context.get("languages"):
-        add_heading("Langues")
+        add_heading(labels["languages"])
         doc.add_paragraph(" | ".join(f"{l.name} — {l.level}" for l in context["languages"]))
 
     return doc
@@ -160,6 +163,48 @@ def build_letter_docx(context: dict) -> Document:
     doc.add_paragraph(
         "Je vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées."
     )
+
+    doc.add_paragraph()
+    sig = doc.add_paragraph()
+    sig.add_run(profile.full_name).bold = True
+
+    return doc
+
+
+def build_letter_docx_ai(context: dict) -> Document:
+    """Lettre de motivation en mode IA : contrairement à build_letter_docx, aucune
+    phrase française n'est codée en dur ici -- tout le texte (objet, formule
+    d'appel, corps, formule de politesse) vient déjà rédigé/traduit par l'IA."""
+    profile = context["profile"]
+    doc = Document()
+
+    style = doc.styles["Normal"]
+    style.font.name = "Calibri"
+    style.font.size = Pt(11)
+
+    p = doc.add_paragraph()
+    r = p.add_run(profile.full_name)
+    r.bold = True
+    r.font.size = Pt(13)
+
+    contact_bits = [b for b in [profile.email, profile.phone, profile.location] if b]
+    if contact_bits:
+        cp = doc.add_paragraph(" · ".join(contact_bits))
+        cp.runs[0].font.color.rgb = GREY
+        cp.runs[0].font.size = Pt(9.5)
+
+    date_p = doc.add_paragraph(context["today"])
+    date_p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+
+    obj = doc.add_paragraph()
+    obj.add_run(context["subject_line"]).bold = True
+
+    doc.add_paragraph(context["salutation"])
+
+    for paragraph in context["paragraphs"]:
+        doc.add_paragraph(paragraph)
+
+    doc.add_paragraph(context["closing"])
 
     doc.add_paragraph()
     sig = doc.add_paragraph()

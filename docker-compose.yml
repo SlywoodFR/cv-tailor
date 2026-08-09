@@ -3,6 +3,7 @@ services:
     build: .
     container_name: cv-tailor
     restart: unless-stopped
+    env_file: .env
     volumes:
       - ./data:/app/data
     networks:
