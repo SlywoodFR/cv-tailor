@@ -36,6 +36,7 @@ DEFAULT_CV_LABELS = {
     "skills": "Compétences",
     "projects": "Projets",
     "languages": "Langues",
+    "certifications": "Certifications",
     "contact": "Contact",
     "current": "en cours",
     "lang_code": "fr",
@@ -68,7 +69,7 @@ def score_against_keywords(text: str, tags: str, keywords: Counter) -> int:
     return score
 
 
-def build_cv_context(profile, experiences, educations, skills, projects, languages, offer_text: str = ""):
+def build_cv_context(profile, experiences, educations, skills, projects, languages, certifications, offer_text: str = ""):
     keywords = extract_keywords(offer_text)
     has_offer = bool(keywords)
 
@@ -139,6 +140,13 @@ def build_cv_context(profile, experiences, educations, skills, projects, languag
         reverse=True,
     )
 
+    # --- Certifications : plus récentes d'abord
+    sorted_certifications = sorted(
+        certifications,
+        key=lambda c: c.obtained_date or __import__("datetime").date.min,
+        reverse=True,
+    )
+
     return {
         "profile": profile,
         "labels": DEFAULT_CV_LABELS,
@@ -148,6 +156,7 @@ def build_cv_context(profile, experiences, educations, skills, projects, languag
         "educations": sorted_educations,
         "projects": projects_context,
         "languages": languages,
+        "certifications": sorted_certifications,
         "has_offer": has_offer,
         "matched_keyword_count": sum(1 for _, s in scored_skills if s and score_against_keywords(s.name, s.name, keywords) > 0) if has_offer else 0,
     }

@@ -94,6 +94,15 @@ def build_docx(context: dict) -> Document:
             if ed.description:
                 doc.add_paragraph(ed.description)
 
+    if context.get("certifications"):
+        add_heading(labels["certifications"])
+        for cert in context["certifications"]:
+            p = doc.add_paragraph()
+            r = p.add_run(cert.name + (f" — {cert.issuer}" if cert.issuer else ""))
+            r.bold = True
+            if cert.obtained_date:
+                p.add_run(f"    ({_fmt(cert.obtained_date, '%m/%Y')})").italic = True
+
     if context.get("languages"):
         add_heading(labels["languages"])
         doc.add_paragraph(" | ".join(f"{l.name} — {l.level}" for l in context["languages"]))

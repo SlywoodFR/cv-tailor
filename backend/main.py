@@ -21,7 +21,7 @@ except (ImportError, OSError):
     HTML = None
 
 from database import init_db, get_session, engine
-from models import Profile, Experience, Education, Skill, Project, Language, GeneratedCV
+from models import Profile, Experience, Education, Skill, Project, Language, Certification, GeneratedCV
 from crud_factory import make_crud_router
 from cv_generator import build_cv_context
 from letter_generator import build_letter_context
@@ -105,7 +105,7 @@ def delete_profile(profile_id: int, session: Session = Depends(get_session)):
     profile = session.get(Profile, profile_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profil introuvable")
-    for model in (Experience, Education, Skill, Project, Language, GeneratedCV):
+    for model in (Experience, Education, Skill, Project, Language, Certification, GeneratedCV):
         for row in session.exec(select(model).where(model.profile_id == profile_id)).all():
             session.delete(row)
     session.delete(profile)
@@ -119,6 +119,7 @@ app.include_router(make_crud_router(Education, "/api/educations", "Formations"))
 app.include_router(make_crud_router(Skill, "/api/skills", "Compétences"))
 app.include_router(make_crud_router(Project, "/api/projects", "Projets"))
 app.include_router(make_crud_router(Language, "/api/languages", "Langues"))
+app.include_router(make_crud_router(Certification, "/api/certifications", "Certifications"))
 
 
 # ---------- Historique des offres (léger : texte + date, pas de snapshot fichier) ----------
@@ -289,7 +290,8 @@ def _gather(session: Session, profile_id: int):
     skills = session.exec(select(Skill).where(Skill.profile_id == profile_id)).all()
     projects = session.exec(select(Project).where(Project.profile_id == profile_id)).all()
     languages = session.exec(select(Language).where(Language.profile_id == profile_id)).all()
-    return profile, experiences, educations, skills, projects, languages
+    certifications = session.exec(select(Certification).where(Certification.profile_id == profile_id)).all()
+    return profile, experiences, educations, skills, projects, languages, certifications
 
 
 def _build_cv_context(session: Session, profile_id: int, offer_text: str, ai_provider):

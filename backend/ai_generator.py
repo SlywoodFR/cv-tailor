@@ -11,6 +11,7 @@ Nécessite une clé API configurée côté serveur (ANTHROPIC_API_KEY, OPENAI_AP
 et/ou GEMINI_API_KEY, voir .env.example) -- sans clé, l'appelant doit rester sur
 le moteur mécanique (voir ai_status()).
 """
+import hashlib
 import json
 import os
 from datetime import datetime
@@ -59,6 +60,7 @@ class AILabels(_Strict):
     skills: str
     projects: str
     languages: str
+    certifications: str
     contact: str
     current: str  # mot localisé pour "en cours" / "present"
 
@@ -104,6 +106,13 @@ class AILanguage(_Strict):
     level: str
 
 
+class AICertification(_Strict):
+    name: str  # jamais traduit (nom officiel de la certification)
+    issuer: str  # jamais traduit
+    obtained_date: Optional[str]
+    link: str
+
+
 class AICVResponse(_Strict):
     lang_code: str
     labels: AILabels
@@ -113,6 +122,7 @@ class AICVResponse(_Strict):
     educations: list[AIEducation]
     projects: list[AIProject]
     languages: list[AILanguage]
+    certifications: list[AICertification]
 
 
 class AILetterResponse(_Strict):
@@ -157,8 +167,12 @@ experience or education entry -- every one supplied must appear in the output, \
 unmodified in substance.
 - Dates: reproduce start_date/end_date exactly as given (ISO YYYY-MM-DD, or null).
 - "labels": translate the section headers (experiences, education, skills, projects, \
-languages, contact) and the "current/ongoing" word into the target language, or keep \
-them in French if no translation is happening."""
+languages, certifications, contact) and the "current/ongoing" word into the target \
+language, or keep them in French if no translation is happening.
+- Certifications: keep every one supplied (never omit or invent), reproduce \
+"obtained_date" exactly as given. Never translate "name" or "issuer" -- certification \
+titles and issuing organizations are official/branded terms, like company or school \
+names."""
 
 _SYSTEM_LETTER = _SYSTEM_COMMON + """
 
@@ -180,7 +194,7 @@ def _parse_date(value: Optional[str]):
         return None
 
 
-def _serialize_cv_data(profile, experiences, educations, skills, projects, languages) -> dict:
+def _serialize_cv_data(profile, experiences, educations, skills, projects, languages, certifications) -> dict:
     return {
         "profile": {"full_name": profile.full_name, "summary": profile.summary},
         "experiences": [
@@ -208,6 +222,15 @@ def _serialize_cv_data(profile, experiences, educations, skills, projects, langu
         "skills": [{"name": s.name, "category": s.category, "level": s.level} for s in skills],
         "projects": [{"name": p.name, "description": p.description, "link": p.link} for p in projects],
         "languages": [{"name": l.name, "level": l.level} for l in languages],
+        "certifications": [
+            {
+                "name": c.name,
+                "issuer": c.issuer,
+                "obtained_date": c.obtained_date.isoformat() if c.obtained_date else None,
+                "link": c.link,
+            }
+            for c in certifications
+        ],
     }
 
 
@@ -335,7 +358,25 @@ def _call_gemini(system_prompt: str, user_content: str, schema_model) -> str:
     return response.text or ""
 
 
+# Cache mémoire (process-local) des réponses déjà générées : évite de rappeler le
+# LLM quand "Aperçu" est suivi de "Télécharger en PDF/.docx" pour la même offre --
+# la clé inclut tout ce qui détermine la sortie (fournisseur + prompt + données
+# sérialisées de la requête), donc tout changement réel (édition du profil, offre
+# différente, fournisseur différent) invalide automatiquement le cache.
+_response_cache: dict[str, BaseModel] = {}
+_CACHE_MAX_ENTRIES = 64
+
+
+def _cache_key(provider: str, system_prompt: str, user_content: str) -> str:
+    raw = f"{provider}\n{system_prompt}\n{user_content}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
 def _call_ai_json(provider: str, system_prompt: str, user_content: str, schema_model):
+    key = _cache_key(provider, system_prompt, user_content)
+    if key in _response_cache:
+        return _response_cache[key]
+
     if provider == "anthropic":
         text = _call_anthropic(system_prompt, user_content, schema_model)
     elif provider == "openai":
@@ -345,16 +386,22 @@ def _call_ai_json(provider: str, system_prompt: str, user_content: str, schema_m
     else:
         raise RuntimeError(f"Fournisseur IA inconnu : {provider!r}")
     try:
-        return schema_model.model_validate_json(text)
+        parsed = schema_model.model_validate_json(text)
     except Exception as e:
         raise RuntimeError(f"Réponse IA invalide (JSON inattendu) : {e}") from e
+
+    if len(_response_cache) >= _CACHE_MAX_ENTRIES:
+        _response_cache.pop(next(iter(_response_cache)))  # évince l'entrée la plus ancienne
+    _response_cache[key] = parsed
+    return parsed
 
 
 # ---------- Construction de contexte (même forme que cv_generator/letter_generator) ----------
 def generate_cv_context_ai(
-    provider: str, profile, experiences, educations, skills, projects, languages, offer_text: str = ""
+    provider: str, profile, experiences, educations, skills, projects, languages, certifications,
+    offer_text: str = "",
 ) -> dict:
-    data = _serialize_cv_data(profile, experiences, educations, skills, projects, languages)
+    data = _serialize_cv_data(profile, experiences, educations, skills, projects, languages, certifications)
     user_content = json.dumps(data, ensure_ascii=False) + f"\n\nOffer text:\n{offer_text}"
     parsed: AICVResponse = _call_ai_json(provider, _SYSTEM_CV, user_content, AICVResponse)
 
@@ -392,6 +439,11 @@ def generate_cv_context_ai(
     ]
     languages_ctx = [SimpleNamespace(name=l.name, level=l.level) for l in parsed.languages]
 
+    certifications_ctx = [
+        SimpleNamespace(name=c.name, issuer=c.issuer, obtained_date=_parse_date(c.obtained_date), link=c.link)
+        for c in parsed.certifications
+    ]
+
     projects_ctx = [{"name": p.name, "description": p.description, "link": p.link} for p in parsed.projects]
 
     return {
@@ -403,6 +455,7 @@ def generate_cv_context_ai(
         "educations": educations_ctx,
         "projects": projects_ctx,
         "languages": languages_ctx,
+        "certifications": certifications_ctx,
         "has_offer": bool((offer_text or "").strip()),
         "matched_keyword_count": 0,
     }

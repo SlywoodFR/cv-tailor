@@ -25,6 +25,7 @@ class Profile(SQLModel, table=True):
     skills: List["Skill"] = Relationship(back_populates="profile")
     projects: List["Project"] = Relationship(back_populates="profile")
     languages: List["Language"] = Relationship(back_populates="profile")
+    certifications: List["Certification"] = Relationship(back_populates="profile")
     cv_history: List["GeneratedCV"] = Relationship(back_populates="profile")
 
 
@@ -85,6 +86,17 @@ class Language(SQLModel, table=True):
     level: str = ""  # ex: "Natif", "Courant", "B2"
 
     profile: Optional[Profile] = Relationship(back_populates="languages")
+
+
+class Certification(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    profile_id: Optional[int] = Field(default=None, foreign_key="profile.id")
+    name: str = ""
+    issuer: str = ""
+    obtained_date: Optional[date] = None
+    link: str = ""
+
+    profile: Optional[Profile] = Relationship(back_populates="certifications")
 
 
 class GeneratedCV(SQLModel, table=True):

@@ -22,6 +22,7 @@
       <button class="tab-btn" data-tab="skills">Compétences</button>
       <button class="tab-btn" data-tab="projects">Projets</button>
       <button class="tab-btn" data-tab="languages">Langues</button>
+      <button class="tab-btn" data-tab="certifications">Certifications</button>
       <button class="tab-btn generate" data-tab="generate">✦ Générer un CV</button>
     </nav>
   </aside>
@@ -183,6 +184,22 @@
       <form id="form-languages" class="form-grid">
         <label>Langue <input name="name" required placeholder="Anglais"></label>
         <label>Niveau <input name="level" placeholder="Courant / B2 / Natif"></label>
+        <div class="form-actions">
+          <button type="submit">Ajouter</button>
+          <button type="button" class="btn-cancel-edit">Annuler</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="tab-certifications" class="tab-panel">
+      <h2>Certifications</h2>
+      <div id="list-certifications" class="item-list"></div>
+      <h3>Ajouter une certification</h3>
+      <form id="form-certifications" class="form-grid">
+        <label>Nom <input name="name" required placeholder="AWS Certified Solutions Architect"></label>
+        <label>Organisme <input name="issuer" placeholder="Amazon Web Services"></label>
+        <label>Date d'obtention <input name="obtained_date" type="date"></label>
+        <label>Lien (justificatif) <input name="link" placeholder="credly.com/..."></label>
         <div class="form-actions">
           <button type="submit">Ajouter</button>
           <button type="button" class="btn-cancel-edit">Annuler</button>

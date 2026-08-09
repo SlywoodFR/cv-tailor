@@ -222,6 +222,13 @@ const collections = {
     endpoint: "/api/languages",
     render: (item) => `<strong>${item.name}</strong><div class="item-sub">${item.level || ""}</div>`,
   },
+  certifications: {
+    endpoint: "/api/certifications",
+    render: (item) => `
+      <strong>${item.name}</strong>
+      <div class="item-sub">${item.issuer || ""} ${item.obtained_date ? "· " + item.obtained_date.slice(0, 7) : ""}</div>
+    `,
+  },
 };
 
 function fmtRange(start, end, yearOnly) {
@@ -273,7 +280,7 @@ async function loadCollection(name) {
 function buildPayload(form) {
   const payload = Object.fromEntries(new FormData(form).entries());
   // dates vides -> null
-  for (const key of ["start_date", "end_date"]) {
+  for (const key of ["start_date", "end_date", "obtained_date"]) {
     if (key in payload && payload[key] === "") payload[key] = null;
   }
   return payload;

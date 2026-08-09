@@ -51,11 +51,12 @@ La base de données (`data/cvtailor.db`) est créée automatiquement au premier 
 
 0. En haut de la barre latérale, choisir un profil dans le menu déroulant ou en créer un
    nouveau avec **+ Profil** (un par personne, ex. deux prénoms différents). Chaque profil a
-   ses propres expériences, formations, compétences, projets et langues, isolés des autres.
+   ses propres expériences, formations, compétences, projets, langues et certifications,
+   isolés des autres.
 1. Onglet **Profil** : renseigner les coordonnées et le résumé.
-2. Onglets **Expériences / Formations / Compétences / Projets / Langues** : ajouter les entrées
-   (pour les compétences et projets, renseigner des mots-clés pertinents — c'est ce sur quoi
-   se base le matching avec les offres).
+2. Onglets **Expériences / Formations / Compétences / Projets / Langues / Certifications** :
+   ajouter les entrées (pour les compétences et projets, renseigner des mots-clés pertinents —
+   c'est ce sur quoi se base le matching avec les offres).
 3. Onglet **Générer un CV** : coller le texte d'une offre d'emploi, choisir une mise en page
    (Classique, Moderne 2 colonnes, ou Compact — uniquement pour l'aperçu et le PDF, le .docx
    garde une seule mise en page) et un mode de génération (Mécanique, ou IA si une clé est
@@ -84,8 +85,11 @@ différente du profil). Sans offre collée, le mode IA se contente de reformuler
 la langue d'origine du profil.
 
 À savoir avant d'activer ce mode :
-- **Chaque clic sur "Aperçu"/"Télécharger en PDF"/"Télécharger en .docx" déclenche un vrai appel**
-  au fournisseur choisi (pas de mise en cache), et peut prendre jusqu'à une minute. Payant pour
+- **Premier clic sur "Aperçu"/"Télécharger en PDF"/"Télécharger en .docx" déclenche un vrai appel**
+  au fournisseur choisi, et peut prendre jusqu'à une minute. Tant que le profil et l'offre collée
+  ne changent pas, les clics suivants (ex. "Aperçu" puis "Télécharger en PDF" juste après)
+  réutilisent le résultat déjà généré au lieu de rappeler le modèle — un changement (édition du
+  profil, texte d'offre différent, autre fournisseur) régénère automatiquement. Payant pour
   Anthropic/OpenAI ; Gemini a un niveau gratuit (voir Installation) mais avec des quotas
   quotidiens limités.
 - **Confidentialité** : en mode IA, le profil complet (coordonnées, expériences, formations,

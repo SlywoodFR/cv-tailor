@@ -103,6 +103,20 @@
 </section>
 {% endif %}
 
+{% if certifications %}
+<section>
+  <h2>{{ labels.certifications }}</h2>
+  {% for c in certifications %}
+  <div class="entry">
+    <div class="entry-header">
+      <span>{{ c.name }}{% if c.issuer %} — {{ c.issuer }}{% endif %}</span>
+      <span>{{ c.obtained_date.strftime('%m/%Y') if c.obtained_date else '' }}</span>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
 {% if languages %}
 <section>
   <h2>{{ labels.languages }}</h2>
